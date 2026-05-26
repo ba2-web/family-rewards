@@ -299,14 +299,17 @@
   }
 
   /* ===== Star slot inside each daily cell ===== */
+  .day {
+    position: relative;
+  }
   .day.starred {
     background: #fef9c3;
     box-shadow: inset 0 0 0 2px #facc15;
   }
-  .day.parent-tappable {
+  .day.parent-tappable, .day.joke-tappable {
     cursor: pointer;
   }
-  .day.parent-tappable:active {
+  .day.parent-tappable:active, .day.joke-tappable:active {
     transform: scale(0.95);
   }
   .day .star-slot {
@@ -316,9 +319,55 @@
     line-height: 1;
     text-align: center;
   }
+  .day .joke-icon {
+    position: absolute;
+    top: 2px;
+    right: 4px;
+    font-size: 13px;
+    line-height: 1;
+  }
   .treat-earned .day.starred .star-slot {
     animation: starPulse 1600ms infinite ease-in-out;
     display: inline-block;
+  }
+
+  /* ===== Joke modal ===== */
+  .joke-modal {
+    text-align: center;
+  }
+  .joke-icon-big {
+    font-size: 56px;
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .joke-setup {
+    font-size: 19px;
+    margin: 14px 0 18px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .joke-reveal-area {
+    min-height: 64px;
+    margin: 6px 0;
+  }
+  .joke-reveal-btn {
+    width: 100%;
+    padding: 14px 16px !important;
+    font-size: 15px !important;
+  }
+  .joke-punchline {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--good);
+    margin: 10px 0;
+    line-height: 1.4;
+    animation: jokeReveal 320ms ease-out;
+  }
+  @keyframes jokeReveal {
+    0% { transform: scale(0.85); opacity: 0; }
+    60% { transform: scale(1.04); opacity: 1; }
+    100% { transform: scale(1); }
   }
 
   /* ===== Daily strip ===== */
@@ -758,7 +807,409 @@ const ROLLOVER_DAY = 5; // 0=Sun ... 5=Fri
 const UNDO_WINDOW_MS = 60 * 1000;
 const PARENT_MODE_TIMEOUT_MS = 90 * 1000;
 const DEFAULT_STAR_DAYS_NEEDED = 4; // starred days per week (max 7) to earn family treat — editable in settings
-const AVATAR_EMOJI_OPTIONS = ['🦊','🐱','🦁','🐯','🐶','🐻','🐼','🐨','🦄','🐲','🦖','🦋','🐸','🐰','🐧','🦉'];
+const DEFAULT_JOKE_THRESHOLD_SON = 60;       // daily pts to unlock a kid-joke for that day (editable per-child)
+const DEFAULT_JOKE_THRESHOLD_DAUGHTER = 50;
+const AVATAR_EMOJI_OPTIONS = ['🦊','🐱','🦁','🐯','🐶','🐻','🐼','🐨','🦄','🐲','🦖','🦋','🐰'];
+// 365+ kid-appropriate jokes. Deterministically selected by (childKey + dateISO).
+const KID_JOKES = [
+  { s: "Why don't scientists trust atoms?", p: "Because they make up everything!" },
+  { s: "What do you call a fish wearing a bowtie?", p: "Sofishticated." },
+  { s: "Why did the cow go to space?", p: "To see the mooooon." },
+  { s: "What do you call a sleeping bull?", p: "A bulldozer." },
+  { s: "Why don't oysters share their pearls?", p: "Because they're shellfish." },
+  { s: "What do you call a bear with no teeth?", p: "A gummy bear." },
+  { s: "Why are fish so smart?", p: "Because they live in schools." },
+  { s: "What do you call a pig that does karate?", p: "A pork chop." },
+  { s: "Why did the chicken join a band?", p: "Because it had the drumsticks." },
+  { s: "What do you call a cow that can play guitar?", p: "A moo-sician." },
+  { s: "Why don't ants get sick?", p: "Because they have little antibodies." },
+  { s: "What do you call a dog magician?", p: "A labracadabrador." },
+  { s: "Why was the cat sitting on the computer?", p: "To keep an eye on the mouse." },
+  { s: "What do you call a snake who works at the office?", p: "A civil serpent." },
+  { s: "Why do bees have sticky hair?", p: "Because they use honeycombs." },
+  { s: "What do you call a fly without wings?", p: "A walk." },
+  { s: "Why don't elephants use phones?", p: "Because they have trunks already." },
+  { s: "What do you get when you cross a snowman and a dog?", p: "Frostbite." },
+  { s: "Why did the elephant leave the circus?", p: "He was tired of working for peanuts." },
+  { s: "What do you call a lazy kangaroo?", p: "A pouch potato." },
+  { s: "Why don't sharks like fast food?", p: "Because they can't catch it." },
+  { s: "What do you call a chicken that tells time?", p: "A clucking clock." },
+  { s: "Why did the duck go to the doctor?", p: "He was feeling a little down." },
+  { s: "What's a cat's favourite colour?", p: "Purr-ple." },
+  { s: "Why don't leopards play hide and seek?", p: "Because they're always spotted." },
+  { s: "What do you call a polite turkey?", p: "A gobble-tleman." },
+  { s: "What do you call a sleeping dinosaur?", p: "A dino-snore." },
+  { s: "Why did the dog sit in the shade?", p: "He didn't want to be a hot dog." },
+  { s: "What do you call a fish with two knees?", p: "A two-knee fish." },
+  { s: "Why do pandas like old movies?", p: "Because they're in black and white." },
+  { s: "What do you call a deer with no eyes?", p: "No-eye-deer." },
+  { s: "Why don't crabs ever donate to charity?", p: "Because they're shellfish." },
+  { s: "What do you call an alligator in a vest?", p: "An investi-gator." },
+  { s: "Why did the rabbit need a haircut?", p: "It was a little hare-y." },
+  { s: "What did the duck say after buying lipstick?", p: "Put it on my bill." },
+  { s: "Why are skunks so good at debate?", p: "They have a lot of sense." },
+  { s: "What do you call a bee that can't make up its mind?", p: "A maybe." },
+  { s: "Why did the chicken cross the playground?", p: "To get to the other slide." },
+  { s: "What do you call a sheep with no legs?", p: "A cloud." },
+  { s: "What kind of bird does construction?", p: "A crane." },
+  { s: "Why did the cookie go to the doctor?", p: "Because it was feeling crummy." },
+  { s: "Why did the banana go to the doctor?", p: "Because it wasn't peeling well." },
+  { s: "What did the grape say when stepped on?", p: "Nothing — it just let out a little wine." },
+  { s: "Why did the scarecrow win an award?", p: "Because he was outstanding in his field." },
+  { s: "What do you call cheese that isn't yours?", p: "Nacho cheese." },
+  { s: "Why don't eggs tell jokes?", p: "They'd crack each other up." },
+  { s: "What do you call a sad strawberry?", p: "A blueberry." },
+  { s: "Why did the tomato turn red?", p: "Because it saw the salad dressing." },
+  { s: "Why did the cookie cry?", p: "Because his mum was a wafer so long." },
+  { s: "What did the lettuce say to the celery?", p: "Stop stalking me." },
+  { s: "Why was the cucumber mad?", p: "Because it was in a pickle." },
+  { s: "What did one plate say to the other plate?", p: "Dinner's on me." },
+  { s: "Why did the orange stop rolling?", p: "It ran out of juice." },
+  { s: "How do you fix a broken pizza?", p: "With tomato paste." },
+  { s: "What do you call a fake noodle?", p: "An impasta." },
+  { s: "What do you call a baby potato?", p: "A small fry." },
+  { s: "Why did the pancake go to the gym?", p: "To get flipping fit." },
+  { s: "What's the slowest fruit?", p: "A bana-naaaaa." },
+  { s: "What did the corn say to the popcorn?", p: "Stop popping in on me." },
+  { s: "Why don't cookies sleep at night?", p: "They keep getting crumbs in the bed." },
+  { s: "Why did the bread complain?", p: "It was loafing around." },
+  { s: "Why did the carrot blush?", p: "Because it saw the salad dressing." },
+  { s: "Knock knock! Who's there? Lettuce.", p: "Lettuce who? Lettuce in, it's cold out here." },
+  { s: "Knock knock! Who's there? Boo.", p: "Boo who? Don't cry, it's only a joke." },
+  { s: "Knock knock! Who's there? Cows go.", p: "Cows go who? No, cows go moo!" },
+  { s: "Knock knock! Who's there? Tank.", p: "Tank who? You're welcome." },
+  { s: "Knock knock! Who's there? Wooden shoe.", p: "Wooden shoe who? Wooden shoe like to know." },
+  { s: "Knock knock! Who's there? Olive.", p: "Olive who? Olive you and I miss you." },
+  { s: "Knock knock! Who's there? Cargo.", p: "Cargo who? No, car goes beep beep." },
+  { s: "Knock knock! Who's there? Orange.", p: "Orange who? Orange you glad I didn't say banana?" },
+  { s: "Knock knock! Who's there? Doris.", p: "Doris who? Doris locked, that's why I knocked." },
+  { s: "Knock knock! Who's there? Yah.", p: "Yah who? No thanks, I prefer Google." },
+  { s: "Knock knock! Who's there? Honeydew.", p: "Honeydew who? Honeydew you want to hear another joke?" },
+  { s: "Knock knock! Who's there? Spell.", p: "Spell who? OK — w-h-o." },
+  { s: "Knock knock! Who's there? Atch.", p: "Atch who? Bless you!" },
+  { s: "Knock knock! Who's there? Dishes.", p: "Dishes who? Dishes the police, open up." },
+  { s: "Knock knock! Who's there? Owls say.", p: "Owls say who? Yes, they do." },
+  { s: "Knock knock! Who's there? Anita.", p: "Anita who? Anita borrow a pencil." },
+  { s: "Knock knock! Who's there? Ice cream.", p: "Ice cream who? Ice cream if you don't let me in!" },
+  { s: "Knock knock! Who's there? Beets.", p: "Beets who? Beets me!" },
+  { s: "Knock knock! Who's there? Nobel.", p: "Nobel who? Nobel — that's why I knocked." },
+  { s: "Knock knock! Who's there? Justin.", p: "Justin who? Justin time for dinner." },
+  { s: "Why was the math book sad?", p: "It had too many problems." },
+  { s: "Why did the teacher wear sunglasses?", p: "Because her class was so bright." },
+  { s: "Why don't pencils tell jokes?", p: "They're too pointy." },
+  { s: "What do you call a number that can't stay still?", p: "A roamin' numeral." },
+  { s: "Why was the equal sign so humble?", p: "It knew it wasn't less than or greater than anyone." },
+  { s: "Why was six afraid of seven?", p: "Because seven eight nine." },
+  { s: "Why did the student eat his homework?", p: "Because the teacher said it was a piece of cake." },
+  { s: "Why did the kid bring a ladder to school?", p: "Because she wanted to go to high school." },
+  { s: "Why was the broom late for school?", p: "It overswept." },
+  { s: "What's a tree's favourite subject?", p: "Geome-tree." },
+  { s: "What did the calculator say to the student?", p: "You can count on me." },
+  { s: "Why was the geometry book so unhappy?", p: "It had too many angles." },
+  { s: "What did the pen say to the paper?", p: "I dot my i's on you." },
+  { s: "Why don't books like to be folded?", p: "They can't stand the bend." },
+  { s: "Why did the music teacher need a ladder?", p: "To reach the high notes." },
+  { s: "What's a snake's favourite subject?", p: "Hisss-tory." },
+  { s: "Why did the clock get in trouble at school?", p: "It tocked too much." },
+  { s: "What's a tornado's favourite game?", p: "Twister." },
+  { s: "Why did the sun go to school?", p: "To get a little brighter." },
+  { s: "What did one raindrop say to the other?", p: "Two's company, three's a cloud." },
+  { s: "What's a cloud's favourite drink?", p: "Mountain dew." },
+  { s: "Why did the snowman name his dog Frostbite?", p: "Because he was a cool dog." },
+  { s: "What's a snowman's favourite breakfast?", p: "Frosted flakes." },
+  { s: "Why was the snowman digging in the carrots?", p: "He was picking his nose." },
+  { s: "What did the snowman order at McDonalds?", p: "An ice-burger." },
+  { s: "Why is the moon never hungry?", p: "Because it's full." },
+  { s: "What did one volcano say to the other?", p: "I lava you." },
+  { s: "Why did the bicycle fall over?", p: "It was two-tired." },
+  { s: "What kind of room has no doors or windows?", p: "A mushroom." },
+  { s: "What did one wall say to the other?", p: "Meet you at the corner." },
+  { s: "Why did the picture go to jail?", p: "It was framed." },
+  { s: "What did the ocean say to the shore?", p: "Nothing — it just waved." },
+  { s: "Why don't melons get married?", p: "Because they cantaloupe." },
+  { s: "What's brown and sticky?", p: "A stick." },
+  { s: "What did the zero say to the eight?", p: "Nice belt." },
+  { s: "Why don't skeletons fight each other?", p: "They don't have the guts." },
+  { s: "Why are ghosts bad at lying?", p: "Because you can see right through them." },
+  { s: "What did the rug say to the floor?", p: "Don't move, I've got you covered." },
+  { s: "Why did the computer go to the doctor?", p: "It had a virus." },
+  { s: "Why was the calendar nervous?", p: "Its days were numbered." },
+  { s: "What did the big bucket say to the little bucket?", p: "You look a little pail." },
+  { s: "What's a pirate's favourite letter?", p: "You'd think R, but his first love be the C." },
+  { s: "Why don't watches go to school?", p: "They've already got the time." },
+  { s: "Why did the man put his money in the freezer?", p: "He wanted cold hard cash." },
+  { s: "Why did the teddy bear say no to dessert?", p: "He was stuffed." },
+  { s: "Why did the leaf go to the doctor?", p: "It was feeling a bit green." },
+  { s: "Why did the giraffe get bad grades?", p: "Because her head was in the clouds." },
+  { s: "Why did the boy throw his clock out the window?", p: "He wanted to see time fly." },
+  { s: "Why did the spider buy a computer?", p: "To check his website." },
+  { s: "Why did the bee get married?", p: "He found his honey." },
+  { s: "Why did the king go to the dentist?", p: "To get his teeth crowned." },
+  { s: "What do you call a hippo at the North Pole?", p: "Lost." },
+  { s: "What do you call a pony with a sore throat?", p: "A little horse." },
+  { s: "What do you call a row of rabbits hopping backwards?", p: "A receding hare-line." },
+  { s: "What do you call a sheep covered in chocolate?", p: "A candy baa." },
+  { s: "What do you call a duck that's broken?", p: "A quack-up." },
+  { s: "What do you call a snowman with a six-pack?", p: "An abdominal snowman." },
+  { s: "What do you call a cat that lives in a hospital?", p: "A first-aid kit." },
+  { s: "Doctor, doctor, I feel like a pair of curtains.", p: "Pull yourself together." },
+  { s: "Doctor, doctor, I keep thinking I'm a bell.", p: "Take these — and give me a ring if it doesn't help." },
+  { s: "Doctor, doctor, I feel like a deck of cards.", p: "I'll deal with you later." },
+  { s: "Doctor, doctor, I feel like a spoon.", p: "Sit still and don't stir." },
+  { s: "Doctor, doctor, I think I'm shrinking!", p: "You'll just have to be a little patient." },
+  { s: "What sound do porcupines make when they kiss?", p: "Ouch." },
+  { s: "What did the buffalo say when his son left for school?", p: "Bison." },
+  { s: "What do you call a frog with no back legs?", p: "Unhoppy." },
+  { s: "What's a frog's favourite drink?", p: "Croak-a-cola." },
+  { s: "What's an alligator's favourite drink?", p: "Gator-ade." },
+  { s: "What does a sheep wear to the beach?", p: "A baa-thing suit." },
+  { s: "What do you call a pile of cats?", p: "A meow-tain." },
+  { s: "What's a horse's favourite sport?", p: "Stable tennis." },
+  { s: "What did the puppy say when he sat on sandpaper?", p: "Ruff." },
+  { s: "Why are teddy bears never hungry?", p: "Because they're always stuffed." },
+  { s: "What do whales eat?", p: "Fish and ships." },
+  { s: "What's a frog's favourite snack?", p: "French flies." },
+  { s: "How does a penguin build its house?", p: "Igloos it together." },
+  { s: "What do you call a dinosaur with an extensive vocabulary?", p: "A thesaurus." },
+  { s: "What do you call a fish that needs help with vocals?", p: "Auto-tuna." },
+  { s: "Why did the bird sit on the clock?", p: "Because time flies." },
+  { s: "What do you call a parrot that flew away?", p: "A polygon." },
+  { s: "What do you call a chicken in a shell suit?", p: "An egg." },
+  { s: "What do you get when you cross an apple and a Christmas tree?", p: "A pineapple." },
+  { s: "Why did the donut go to the dentist?", p: "To get a filling." },
+  { s: "Why was the strawberry crying?", p: "Because its parents were in a jam." },
+  { s: "What did the ice cream say to the unhappy cake?", p: "What's eating you?" },
+  { s: "Why did the egg hide?", p: "Because it was a little chicken." },
+  { s: "What's a vampire's favourite ice cream?", p: "Vein-illa." },
+  { s: "Why did the football coach go to the bank?", p: "To get his quarter back." },
+  { s: "Why are basketball players messy eaters?", p: "Because they love to dribble." },
+  { s: "Why don't grasshoppers go to football games?", p: "Because they prefer cricket." },
+  { s: "What runs around a baseball field but never moves?", p: "The fence." },
+  { s: "Why was Cinderella bad at football?", p: "Her coach was a pumpkin." },
+  { s: "What's a runner's favourite subject?", p: "Jog-raphy." },
+  { s: "Why was the skeleton bad at sports?", p: "He had no body to play with." },
+  { s: "Why don't numbers go to parties?", p: "Because they get summed up." },
+  { s: "What's a math teacher's favourite snack?", p: "Pi." },
+  { s: "Why is two afraid of one?", p: "Because one plus one is two!" },
+  { s: "What did the triangle say to the circle?", p: "You're pointless." },
+  { s: "Why couldn't the band play hide and seek?", p: "Because good luck hiding when you're a-percussion." },
+  { s: "Why are pianos so hard to open?", p: "The keys are inside." },
+  { s: "What's a skeleton's favourite instrument?", p: "The trom-bone." },
+  { s: "Why did the guitar take a nap?", p: "It was tired of getting picked on." },
+  { s: "What does a music teacher need most?", p: "A lot of patience." },
+  { s: "Why did the singer climb the ladder?", p: "To reach the high notes." },
+  { s: "What kind of music do mummies like?", p: "Wrap music." },
+  { s: "How does the moon cut his hair?", p: "Eclipse it." },
+  { s: "Why did the astronaut break up with the alien?", p: "They needed space." },
+  { s: "Why are aliens so smart?", p: "They live light years ahead of us." },
+  { s: "What's a planet's favourite food?", p: "Saturn rings." },
+  { s: "What kind of music do astronauts listen to?", p: "Nep-tunes." },
+  { s: "How do you organise a space party?", p: "You planet." },
+  { s: "What did the alien say to the garden?", p: "Take me to your weeder." },
+  { s: "Why are spaceships so clean?", p: "Because they always vacuum." },
+  { s: "What did the foot say to the toe?", p: "Don't look now, but there's a heel following us." },
+  { s: "Why do dragons sleep during the day?", p: "So they can fight knights." },
+  { s: "Why did the car get a flat tire?", p: "Because of a fork in the road." },
+  { s: "What kind of car do eggs drive?", p: "A yolk-swagen." },
+  { s: "What did the boat say to the dock?", p: "Hello, pier." },
+  { s: "Why did the bus driver get fired?", p: "She kept driving people away." },
+  { s: "What does a train say when it gets stuck?", p: "I think I cant." },
+  { s: "What kind of plane can fly underwater?", p: "A jelly-fish." },
+  { s: "What runs but never walks?", p: "Water." },
+  { s: "Why did the snowman go to therapy?", p: "He had a meltdown." },
+  { s: "What do you call a snowman in summer?", p: "A puddle." },
+  { s: "What did the dirt say to the rain?", p: "If this keeps up, my name will be mud." },
+  { s: "What's a rabbit's favourite weather?", p: "Hare-icane." },
+  { s: "Why do birds fly south for winter?", p: "Because it's too far to walk." },
+  { s: "I'm reading a book about anti-gravity.", p: "It's impossible to put down." },
+  { s: "I don't trust stairs.", p: "They're always up to something." },
+  { s: "The roundest knight at King Arthur's table was?", p: "Sir Cumference." },
+  { s: "I made a pun about the wind.", p: "It blew over." },
+  { s: "I tried to catch fog yesterday.", p: "Mist." },
+  { s: "What has hands but cannot clap?", p: "A clock." },
+  { s: "What has a face but no eyes?", p: "A clock." },
+  { s: "What has many keys but cannot open a single door?", p: "A piano." },
+  { s: "What gets wetter the more it dries?", p: "A towel." },
+  { s: "What has one eye but cannot see?", p: "A needle." },
+  { s: "What goes up but never comes down?", p: "Your age." },
+  { s: "What can travel around the world while staying in a corner?", p: "A stamp." },
+  { s: "What has teeth but cannot eat?", p: "A comb." },
+  { s: "What has legs but cannot walk?", p: "A table." },
+  { s: "What has a head and a tail but no body?", p: "A coin." },
+  { s: "What has to be broken before you use it?", p: "An egg." },
+  { s: "What's full of holes but still holds water?", p: "A sponge." },
+  { s: "What can you catch but not throw?", p: "A cold." },
+  { s: "What has two banks but no money?", p: "A river." },
+  { s: "What runs but has no legs?", p: "Water." },
+  { s: "Time flies like an arrow.", p: "Fruit flies like a banana." },
+  { s: "I would tell you a joke about pizza...", p: "But it's a bit cheesy." },
+  { s: "I'm on a seafood diet.", p: "Whenever I see food, I eat it." },
+  { s: "Why are pirates pirates?", p: "Because they arrrr." },
+  { s: "What do you call a pirate who skips class?", p: "Captain Hooky." },
+  { s: "What's a pirate's favourite vegetable?", p: "Arrr-tichoke." },
+  { s: "Why couldn't the pirate play cards?", p: "He was sitting on the deck." },
+  { s: "Why did Cinderella get kicked off the football team?", p: "She kept running away from the ball." },
+  { s: "Why are knights afraid of math?", p: "They worry about right angles." },
+  { s: "What do you get if you cross a snowman with a vampire?", p: "Frostbite." },
+  { s: "What's a snowman's favourite cereal?", p: "Frosted flakes." },
+  { s: "How does Jack Frost get to work?", p: "By icicle." },
+  { s: "What do snowmen wear on their heads?", p: "Ice caps." },
+  { s: "Why did the guitar player quit the band?", p: "He was getting strung along." },
+  { s: "What did the violin say to the cello?", p: "You're so low." },
+  { s: "Why are pianos so noble?", p: "Because they're upright." },
+  { s: "Why did the kid jump over the candlestick?", p: "Because he was nimble." },
+  { s: "Why are toilets always happy?", p: "They get flushed with success." },
+  { s: "Why did the gardener plant a lightbulb?", p: "She wanted to grow a power plant." },
+  { s: "What did the painter say to the wall?", p: "One more crack and I'll plaster you." },
+  { s: "Why did the dad joke fall down the stairs?", p: "It missed a step." },
+  { s: "Why did the man wear glasses in math class?", p: "To improve di-vision." },
+  { s: "What did the limestone say to the geologist?", p: "Don't take me for granite." },
+  { s: "What does a thesaurus eat for breakfast?", p: "Synonym buns." },
+  { s: "Why did the chair go to the gym?", p: "To get a stronger back." },
+  { s: "What did the desk say to the chair?", p: "Have a seat." },
+  { s: "Why did the shoe go to school?", p: "It wanted a sole-mate." },
+  { s: "What did the sock say to the foot?", p: "You crack me up." },
+  { s: "Why was the belt arrested?", p: "For holding up some pants." },
+  { s: "What do you call a snowman party?", p: "A snowball." },
+  { s: "What do you call a bird that's been left out in the cold?", p: "A brrr-d." },
+  { s: "Why are mountains so funny?", p: "They're hill-arious." },
+  { s: "Why don't oranges win races?", p: "Because they run out of juice." },
+  { s: "Why was the moon hungry?", p: "Because it was only a quarter full." },
+  { s: "Why did the calendar look confused?", p: "It lost its dates." },
+  { s: "Why did the egg pass class?", p: "Because it eggs-celled." },
+  { s: "Why are fish so good at music?", p: "They have scales." },
+  { s: "Why was the broom late for school?", p: "It overswept." },
+  { s: "Why did the orange visit the doctor?", p: "It was peelish." },
+  { s: "Why was the cookie crumbly?", p: "It was a wafer too long." },
+  { s: "Why did the tree go to the dentist?", p: "It had a root problem." },
+  { s: "Why did the donkey laugh at the horse?", p: "Because the horse said neigh." },
+  { s: "Why did the fish blush?", p: "Because it saw the lake's bottom." },
+  { s: "Why did the egg cross the road?", p: "To go to the other shell." },
+  { s: "Why did the chicken go to the museum?", p: "To see the chicken-saurs." },
+  { s: "Why are cats good at video games?", p: "They have nine lives." },
+  { s: "Why did the cake invite friends over?", p: "It wanted to icing along." },
+  { s: "Why did the lemon stop rolling?", p: "It ran out of juice." },
+  { s: "Why did the basketball go to the doctor?", p: "It got dribbled." },
+  { s: "Why did the orange juice go to school?", p: "To concentrate." },
+  { s: "Why did the milk visit the gym?", p: "To get strong bones." },
+  { s: "Why was the dog confused at the park?", p: "He couldn't fetch his thoughts." },
+  { s: "Why did the cat sit on the keyboard?", p: "To watch the mouse." },
+  { s: "Why did the spider go online?", p: "It was looking for a web-site." },
+  { s: "Why did the rocket go to school?", p: "To be a star student." },
+  { s: "Why did the moon skip dinner?", p: "It was already full." },
+  { s: "Why did the dolphin smile?", p: "It saw something fin-tastic." },
+  { s: "Why don't pencils ever get lost?", p: "They always make their mark." },
+  { s: "Why was the pillow so calm?", p: "It just liked to rest." },
+  { s: "Why did the book look sad?", p: "Its story didn't end well." },
+  { s: "Why did the kite go up?", p: "Because it had high hopes." },
+  { s: "Why was the comb shy?", p: "It was always parting." },
+  { s: "Why did the river run away?", p: "It had places to flow." },
+  { s: "Why don't mountains tell secrets?", p: "They have too many peaks." },
+  { s: "Why was the volcano in detention?", p: "It blew its top." },
+  { s: "Why did the iceberg go to therapy?", p: "It was distant." },
+  { s: "Why was the snowflake feeling proud?", p: "It was unique." },
+  { s: "Why did the cloud bring an umbrella?", p: "In case it rained on its parade." },
+  { s: "Why was the rainbow tired?", p: "It was always arching." },
+  { s: "Why did the wind get a job?", p: "It was always blowing things off." },
+  { s: "Why did the lighthouse blush?", p: "It saw the sea waves." },
+  { s: "Why was the boat happy?", p: "It was sailing along nicely." },
+  { s: "Why did the submarine get lost?", p: "It dove too deep." },
+  { s: "Why did the seashell sing?", p: "It heard a beautiful sea-aria." },
+  { s: "What do you call a dancing sheep?", p: "A baa-llerina." },
+  { s: "What does a clock do when it's hungry?", p: "It goes back four seconds." },
+  { s: "What did the buffalo say at the end of the game?", p: "Bison everybody." },
+  { s: "What do you call a fish with no eye?", p: "A fsh." },
+  { s: "Why did the chicken go to the séance?", p: "To get to the other side." },
+  { s: "What did one snowman say to the other?", p: "Do you smell carrots?" },
+  { s: "What did the snail say while riding the turtle?", p: "Wheee!" },
+  { s: "What's a witch's favourite subject?", p: "Spell-ing." },
+  { s: "What did the porcupine say to his friend?", p: "Quill you be mine?" },
+  { s: "What's an owl's favourite subject?", p: "Owl-gebra." },
+  { s: "Why don't dinosaurs ever drive cars?", p: "Because they're extinct." },
+  { s: "What's the difference between a guitar and a fish?", p: "You can tune a guitar but you can't tuna fish." },
+  { s: "What kind of shoes do ninjas wear?", p: "Sneakers." },
+  { s: "Why was the broom always tired?", p: "It overswept every night." },
+  { s: "What's a baker's favourite kind of music?", p: "Whisk and roll." },
+  { s: "What do you call a bear caught in the rain?", p: "A drizzly bear." },
+  { s: "How do you make an octopus laugh?", p: "With ten-tickles." },
+  { s: "What does a baby computer call its dad?", p: "Da-ta." },
+  { s: "What do you call a snake who works for a contractor?", p: "A boa constructor." },
+  { s: "What did the buffalo say after a fight?", p: "Bison please." },
+  { s: "Why did the math teacher draw on the window?", p: "She wanted her lesson to be very clear." },
+  { s: "What did the right eye say to the left eye?", p: "Between us, something smells." },
+  { s: "What kind of dog can do magic tricks?", p: "A labracadabrador." },
+  { s: "What's a frog's favourite year?", p: "Leap year." },
+  { s: "Why did the owl invite his friends over?", p: "He didn't want to be owl alone." },
+  { s: "What's a sea monster's favourite snack?", p: "Ships and dip." },
+  { s: "Why was the broom angry?", p: "Someone kept making sweeping accusations." },
+  { s: "How do trees access the internet?", p: "They log in." },
+  { s: "What do you call a friendly ghost?", p: "Casper." },
+  { s: "Why did the pumpkin smile?", p: "Because it was in good cheer." },
+  { s: "How do you catch a squirrel?", p: "Climb a tree and act like a nut." },
+  { s: "What do you call a chicken who tells jokes?", p: "A comedi-hen." },
+  { s: "What does a cloud wear under its raincoat?", p: "Thunderwear." },
+  { s: "What did one snowman say to the carrot?", p: "Stop nosing about." },
+  { s: "Why did the smartphone need glasses?", p: "It lost its contacts." },
+  { s: "What's a robot's favourite snack?", p: "Computer chips." },
+  { s: "Why don't aliens eat clowns?", p: "Because they taste funny." },
+  { s: "What did the spaghetti say to the meatball?", p: "You're saucy." },
+  { s: "Why was the cookbook so popular?", p: "It had a lot of taste." },
+  { s: "How do you make a tissue dance?", p: "Put a little boogie in it." },
+  { s: "What do you call a sleeping pizza?", p: "A piz-zzz-a." },
+  { s: "What does a cat say when it's surprised?", p: "You're kitten me!" },
+  { s: "Why did the dog cross the playground?", p: "To get to the bark side." },
+  { s: "What kind of tree fits in your hand?", p: "A palm tree." },
+  { s: "What did one ocean say to the other?", p: "Nothing — they just waved." },
+  { s: "Why did the gum cross the road?", p: "It was stuck to the chicken's foot." },
+  { s: "What did the apple skin say to the apple?", p: "I've got you covered." },
+  { s: "What did the salt say to the pepper?", p: "Hey, season-up." },
+  { s: "Why was the picture happy?", p: "It was framed beautifully." },
+  { s: "What's a window's favourite drink?", p: "A pane-cake." },
+  { s: "How do mountains stay warm?", p: "They wear snow-caps." },
+  { s: "What do you call a sneaky lemon?", p: "A sour-pus." },
+  { s: "What did the soup say to the sandwich?", p: "Lunch is on me." },
+  { s: "Why did the pie go to the doctor?", p: "It felt a bit crumby." },
+  { s: "Why don't books take vacations?", p: "They like to stay on the shelf." },
+  { s: "What's a teacher's favourite nation?", p: "An ex-pla-nation." },
+  { s: "What's a beekeeper's favourite singer?", p: "Sting." },
+  { s: "Why was the broomstick happy?", p: "It got swept off its feet." },
+  { s: "Why did the chair fall over?", p: "Because it lost its balance." },
+  { s: "What do you call a sad polar bear?", p: "An ice-cream-of-tartar." },
+  { s: "Why was the math problem confused?", p: "It had too many sums." },
+  { s: "Why did the puzzle hide?", p: "It didn't want to be put together." },
+  { s: "What did the daisy say to the rose?", p: "Have a flowery day." },
+  { s: "What did the tap say to the kettle?", p: "Looks like steam is rising." },
+  { s: "Why was the umbrella happy?", p: "It had a sunny outlook." },
+  { s: "What's a frog's least favourite flower?", p: "A croak-us." },
+  { s: "Why are dogs such good detectives?", p: "They always sniff out the truth." },
+  { s: "What's a maths teacher's favourite tool?", p: "A multiplier." },
+  { s: "What did the lamp say to the table?", p: "Lights out." },
+  { s: "Why did the sandwich go to the beach?", p: "To get some sand-wich-es." },
+  { s: "What did the alphabet say after Z?", p: "Time to start over." },
+  { s: "Why did the music note skip a beat?", p: "It saw a rest sign." },
+  { s: "Why was the printer always tired?", p: "It was running out of toner." },
+  { s: "What's the loudest pet?", p: "A trumpet — no, a parrot." },
+  { s: "What did the chimney say to the smoke?", p: "I rise above the rest." },
+  { s: "Why was the lake sneaky?", p: "It kept depths." },
+  { s: "What did the broom say to the dust?", p: "I'll sweep you off your feet." },
+  { s: "What kind of music does a planet listen to?", p: "Earth tones." },
+  { s: "Why did the kid bring chalk to the beach?", p: "To draw on the sand-board." },
+  { s: "Why did the giraffe carry a big notebook?", p: "She had a lot to write up to." },
+  { s: "Why did the lion eat the tightrope walker?", p: "He wanted a well-balanced meal." },
+  { s: "Why did the music teacher get locked out?", p: "Her keys were inside the piano." },
+  { s: "What do you call a peanut in a spacesuit?", p: "An astro-nut." }
+];
+
+function jokeForDay(childKey, dateISO) {
+  const seed = childKey + ':' + dateISO;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = ((h << 5) - h) + seed.charCodeAt(i);
+    h |= 0;
+  }
+  return KID_JOKES[Math.abs(h) % KID_JOKES.length];
+}
+
 const AVATAR_CHARACTER_OPTIONS = [
   { label: 'Bluey & Bingo',   src: 'profile-bluey.png' },
   { label: 'Sisters & lamb',  src: 'profile-farm.png' },
@@ -770,7 +1221,10 @@ const AVATAR_CHARACTER_OPTIONS = [
   { label: 'Minion (Otto)',    src: 'profile-minion2.png' },
   { label: 'Minion (Dave)',    src: 'profile-minion3.png' },
   { label: 'Minion (Bob)',     src: 'profile-minion4.png' },
-  { label: 'Kevin (Home Alone)', src: 'profile-kevin.png' }
+  { label: 'Kevin (Home Alone)', src: 'profile-kevin.png' },
+  { label: 'Rick Mitchell',    src: 'profile-mitchell.png' },
+  { label: 'Katie Mitchell',   src: 'profile-mitchellWeb.png' },
+  { label: 'Cole Palmer',      src: 'profile-palmer.png' }
 ];
 
 // weeklyCap = the visible cap kids see and parents can award up to.
@@ -829,7 +1283,7 @@ function getItems(childKey) {
 const DOW_LABELS = ['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
 
 const DEFAULT_STATE = {
-  version: 6,
+  version: 7,
   parentPin: '0000',
   rolloverHour: ROLLOVER_HOUR,
   weeklyCap: DEFAULT_WEEKLY_CAP,
@@ -840,12 +1294,14 @@ const DEFAULT_STATE = {
   son: {
     name: 'Son',
     avatar: { type: 'image', src: 'son.png' },
-    entries: []
+    entries: [],
+    jokeThreshold: DEFAULT_JOKE_THRESHOLD_SON
   },
   daughter: {
     name: 'Daughter',
     avatar: { type: 'image', src: 'daughter.png' },
-    entries: []
+    entries: [],
+    jokeThreshold: DEFAULT_JOKE_THRESHOLD_DAUGHTER
   },
   archive: []
 };
@@ -928,6 +1384,12 @@ function migrateState(parsed) {
   if (parsed.version < 6) {
     if (parsed.starDaysNeeded === undefined) parsed.starDaysNeeded = DEFAULT_STAR_DAYS_NEEDED;
     parsed.version = 6;
+  }
+  // v6 -> v7: per-child daily joke unlock threshold
+  if (parsed.version < 7) {
+    if (parsed.son && parsed.son.jokeThreshold === undefined) parsed.son.jokeThreshold = DEFAULT_JOKE_THRESHOLD_SON;
+    if (parsed.daughter && parsed.daughter.jokeThreshold === undefined) parsed.daughter.jokeThreshold = DEFAULT_JOKE_THRESHOLD_DAUGHTER;
+    parsed.version = 7;
   }
 }
 
@@ -1353,13 +1815,25 @@ function childCardHTML(childKey) {
         ${DOW_LABELS.map((d, i) => {
           const dateISO = dateForDow(i, state.weekStartISO);
           const starred = stars.includes(dateISO);
-          const cls = ['day', i === today ? 'today' : '', starred ? 'starred' : '', parentMode ? 'parent-tappable' : ''].filter(Boolean).join(' ');
-          const onclick = parentMode ? `onclick="toggleStar('${dateISO}')"` : '';
-          const title = parentMode ? `title="Tap to ${starred ? 'remove' : 'award'} a star for ${d}"` : '';
+          const dayTotal = dayTotals[i];
+          const hasJoke = dayTotal >= (child.jokeThreshold || 60);
+          const jokeTappable = !parentMode && hasJoke;
+          const cls = ['day', i === today ? 'today' : '', starred ? 'starred' : '',
+                       parentMode ? 'parent-tappable' : '', jokeTappable ? 'joke-tappable' : ''].filter(Boolean).join(' ');
+          let onclick = '';
+          let title = '';
+          if (parentMode) {
+            onclick = `onclick="toggleStar('${dateISO}')"`;
+            title = `title="Tap to ${starred ? 'remove' : 'award'} a star for ${d}"`;
+          } else if (jokeTappable) {
+            onclick = `onclick="openJoke('${childKey}','${dateISO}')"`;
+            title = `title="Tap for ${d}'s joke"`;
+          }
           return `
             <div class="${cls}" ${onclick} ${title}>
               <div class="dow">${d}</div>
-              <div class="pts">${dayTotals[i]}</div>
+              <div class="pts">${dayTotal}</div>
+              ${hasJoke ? '<div class="joke-icon">😄</div>' : ''}
               <div class="star-slot ${starred ? 'starred' : ''}">${starred ? '⭐' : ''}</div>
             </div>
           `;
@@ -1372,6 +1846,30 @@ function childCardHTML(childKey) {
       </div>
     </div>
   `;
+}
+
+function openJoke(childKey, dateISO) {
+  const joke = jokeForDay(childKey, dateISO);
+  renderModal(`
+    <div class="modal joke-modal">
+      <div class="joke-icon-big">😄</div>
+      <p class="joke-setup">${escapeHtml(joke.s)}</p>
+      <div class="joke-reveal-area">
+        <button id="joke-reveal-btn" class="primary joke-reveal-btn" onclick="revealPunchline()">Tap for punchline →</button>
+        <p class="joke-punchline" id="joke-punchline" style="display:none;">${escapeHtml(joke.p)}</p>
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal()">Close</button>
+      </div>
+    </div>
+  `);
+}
+
+function revealPunchline() {
+  const btn = document.getElementById('joke-reveal-btn');
+  const pl = document.getElementById('joke-punchline');
+  if (btn) btn.style.display = 'none';
+  if (pl) pl.style.display = 'block';
 }
 
 function openItemDetail(childKey, itemKey) {
@@ -1578,8 +2076,16 @@ function openSettings() {
           <input type="text" value="${escapeAttr(state.son.name)}" onblur="updateSetting('son.name', this.value)">
         </div>
         <div class="settings-row">
+          <label>${escapeHtml(state.son.name)}'s joke threshold<br><span style="font-size:11px;color:var(--text-faint);">daily pts to unlock joke</span></label>
+          <input type="number" value="${state.son.jokeThreshold}" min="10" max="200" onblur="updateSetting('son.jokeThreshold', Math.max(10, Math.min(200, parseInt(this.value)||${DEFAULT_JOKE_THRESHOLD_SON})))">
+        </div>
+        <div class="settings-row">
           <label>Daughter's name</label>
           <input type="text" value="${escapeAttr(state.daughter.name)}" onblur="updateSetting('daughter.name', this.value)">
+        </div>
+        <div class="settings-row">
+          <label>${escapeHtml(state.daughter.name)}'s joke threshold<br><span style="font-size:11px;color:var(--text-faint);">daily pts to unlock joke</span></label>
+          <input type="number" value="${state.daughter.jokeThreshold}" min="10" max="200" onblur="updateSetting('daughter.jokeThreshold', Math.max(10, Math.min(200, parseInt(this.value)||${DEFAULT_JOKE_THRESHOLD_DAUGHTER})))">
         </div>
         <div class="settings-row">
           <label>Parent PIN (4 digits)</label>
@@ -1690,6 +2196,7 @@ Object.assign(window, {
   openSettings, openHistory, updateSetting,
   toggleStar, openAvatarPicker, setAvatar,
   openItemDetail,
+  openJoke, revealPunchline,
   exportData
 });
 </script>
