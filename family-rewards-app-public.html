@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Family Rewards">
+<title>Family Rewards</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --card-border: #ece8e0;
+    --text: #1a1a1a;
+    --text-dim: #6b6b6b;
+    --text-faint: #a3a3a3;
+    --son-accent: #b45309;
+    --son-accent-soft: #fef3e2;
+    --daughter-accent: #be185d;
+    --daughter-accent-soft: #fce7f3;
+    --good: #15803d;
+    --good-soft: #dcfce7;
+    --danger: #b91c1c;
+    --danger-soft: #fee2e2;
+    --shadow-sm: 0 1px 2px rgba(20,20,20,0.04), 0 1px 1px rgba(20,20,20,0.03);
+    --shadow-md: 0 4px 12px rgba(20,20,20,0.06), 0 2px 4px rgba(20,20,20,0.04);
+    --radius: 14px;
+    --radius-sm: 10px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+    height: 100%;
+  }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  button {
+    font: inherit; color: inherit;
+    border: none; background: none;
+    cursor: pointer;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:disabled { cursor: not-allowed; }
+
+  /* ===== Layout ===== */
+  .app {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px 20px 40px;
+    padding-top: max(16px, env(safe-area-inset-top));
+  }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 4px 16px;
+  }
+  .topbar h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .topbar .meta {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+  .topbar .actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .topbar .actions button {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+  }
+  .topbar .actions button.parent-on {
+    background: var(--good-soft);
+    border-color: #bbf7d0;
+    color: var(--good);
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 880px) {
+    .cards { grid-template-columns: 1fr; }
+  }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+  }
+
+  /* ===== Child header ===== */
+  .child-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 22px 16px;
+  }
+  .avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: #f3f0eb;
+    flex-shrink: 0;
+    object-fit: cover;
+    border: 3px solid var(--card);
+    box-shadow: 0 0 0 1px var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-faint);
+    font-size: 32px;
+    font-weight: 600;
+    overflow: hidden;
+  }
+  .avatar img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .child-head .who {
+    flex: 1;
+    min-width: 0;
+  }
+  .child-head .name {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .child-head .sub {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .child-head .total {
+    text-align: right;
+  }
+  .child-head .total .pts {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .child-head .total .of {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .son .child-head .total .pts { color: var(--son-accent); }
+  .daughter .child-head .total .pts { color: var(--daughter-accent); }
+
+  /* ===== Mini progress bar (top-right of each child header) ===== */
+  .mini-progress {
+    display: block;
+    margin: 8px 0 4px auto;
+    width: 140px;
+    height: 8px;
+    background: #f3f0eb;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .mini-progress-fill {
+    height: 100%;
+    background: var(--son-accent);
+    border-radius: 999px;
+    transition: width 280ms ease;
+  }
+  .daughter .mini-progress-fill { background: var(--daughter-accent); }
+  .mini-progress-fill.full { background: var(--good); }
+  @media (max-width: 600px) {
+    .mini-progress { width: 110px; }
+  }
+
+  /* ===== Family treat bar (below cards, full width) ===== */
+  @keyframes starPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+  }
+  .family-treat-bar {
+    margin-top: 20px;
+    padding: 16px 22px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 15px;
+    color: #78350f;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .family-treat-bar .icon {
+    font-size: 22px;
+    line-height: 1;
+  }
+  .family-treat-bar .count {
+    font-weight: 700;
+    color: #92400e;
+  }
+  .family-treat-bar .treat {
+    font-weight: 600;
+  }
+  .family-treat-bar.earned {
+    background: var(--good-soft);
+    border-color: #86efac;
+    color: var(--good);
+    font-weight: 600;
+  }
+  .family-treat-bar.empty {
+    background: #f6f3ee;
+    border-color: var(--card-border);
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  @media (max-width: 600px) {
+    .family-treat-bar { font-size: 14px; padding: 12px 16px; }
+    .family-treat-bar .icon { font-size: 18px; }
+  }
+
+  /* ===== Clickable avatar ===== */
+  .avatar {
+    cursor: pointer;
+    transition: transform 120ms;
+  }
+  .avatar:active {
+    transform: scale(0.94);
+  }
+  .avatar-emoji {
+    font-size: 56px;
+    line-height: 1;
+  }
+  @media (max-width: 600px) {
+    .avatar-emoji { font-size: 44px; }
+  }
+
+  /* ===== Avatar picker modal grid ===== */
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+  }
+  .avatar-option {
+    aspect-ratio: 1;
+    background: #f6f3ee;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    cursor: pointer;
+    transition: transform 100ms, background 150ms;
+    overflow: hidden;
+  }
+  .avatar-option img {
+    width: 80%;
+    height: 80%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+  .avatar-option:active { transform: scale(0.93); }
+  .avatar-option.selected {
+    outline: 3px solid var(--son-accent);
+    outline-offset: -3px;
+    background: var(--son-accent-soft);
+  }
+  .daughter-picker .avatar-option.selected {
+    outline-color: var(--daughter-accent);
+    background: var(--daughter-accent-soft);
+  }
+
+  /* ===== Star slot inside each daily cell ===== */
+  .day.starred {
+    background: #fef9c3;
+    box-shadow: inset 0 0 0 2px #facc15;
+  }
+  .day.parent-tappable {
+    cursor: pointer;
+  }
+  .day.parent-tappable:active {
+    transform: scale(0.95);
+  }
+  .day .star-slot {
+    margin-top: 4px;
+    min-height: 20px;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+  }
+  .treat-earned .day.starred .star-slot {
+    animation: starPulse 1600ms infinite ease-in-out;
+    display: inline-block;
+  }
+
+  /* ===== Daily strip ===== */
+  .daily {
+    display: grid;
+    grid-template-columns: 1.05fr repeat(7, 1fr);
+    gap: 6px;
+    padding: 0 22px 18px;
+  }
+  .day {
+    background: #f6f3ee;
+    border-radius: 8px;
+    padding: 8px 4px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .day.last-week {
+    background: #e2e8f0;
+    box-shadow: inset -2px 0 0 #94a3b8;
+  }
+  .day.last-week .dow {
+    color: #475569;
+    font-weight: 600;
+  }
+  .day.last-week .pts {
+    color: #334155;
+  }
+  .son .day.today {
+    background: var(--son-accent-soft);
+    outline: 2px solid var(--son-accent);
+    outline-offset: -2px;
+  }
+  .daughter .day.today {
+    background: var(--daughter-accent-soft);
+    outline: 2px solid var(--daughter-accent);
+    outline-offset: -2px;
+  }
+  .day .dow {
+    color: var(--text-dim);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 10px;
+  }
+  .day .pts {
+    font-weight: 600;
+    margin-top: 2px;
+    font-size: 14px;
+  }
+
+  /* ===== Items list ===== */
+  .items {
+    padding: 0 14px 16px;
+  }
+  .item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 10px;
+    border-radius: var(--radius-sm);
+    transition: background 120ms;
+  }
+  .item + .item {
+    border-top: 1px solid var(--card-border);
+  }
+  .item .icon {
+    font-size: 26px;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .item .icon img {
+    max-width: 34px;
+    max-height: 34px;
+    object-fit: contain;
+    border-radius: 4px;
+  }
+  .item .body {
+    flex: 1;
+    min-width: 0;
+  }
+  .item .label {
+    font-weight: 500;
+    font-size: 14px;
+  }
+  .son .item .label .ptv { color: var(--son-accent); }
+  .daughter .item .label .ptv { color: var(--daughter-accent); }
+  .item .label .ptv {
+    font-weight: 600;
+    margin-left: 6px;
+  }
+  .item .sub {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .item .pips {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    margin-right: 6px;
+  }
+  .pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #ece8e0;
+  }
+  .son .pip.filled { background: var(--son-accent); }
+  .daughter .pip.filled { background: var(--daughter-accent); }
+  .item .btn-group {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .item .add, .item .remove {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
+    transition: transform 100ms, opacity 200ms;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .item .add {
+    color: white;
+  }
+  .son .item .add { background: var(--son-accent); }
+  .daughter .item .add { background: var(--daughter-accent); }
+  .item .add:active { transform: scale(0.92); }
+  .item .add:disabled {
+    background: #f3f0eb !important;
+    color: var(--text-faint);
+  }
+  .item .remove {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    font-size: 18px;
+  }
+  .item .remove:active { transform: scale(0.92); }
+  .item .remove:disabled {
+    color: var(--text-faint);
+    opacity: 0.4;
+  }
+  .item.disabled { opacity: 0.55; }
+
+  /* ===== Footer area ===== */
+  .footer {
+    margin-top: 20px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+  .footer .undo {
+    display: inline-block;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    color: var(--danger);
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    font-weight: 500;
+    font-size: 14px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* ===== Modal ===== */
+  .modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,20,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .modal p {
+    margin: 0 0 16px;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .modal .warn-box {
+    background: #fef3e2;
+    border: 1px solid #fbbf24;
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  .modal .warn-box .heading {
+    font-weight: 600;
+    color: #92400e;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  .modal .warn-box .body {
+    color: #78350f;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .pin-display {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin: 16px 0;
+  }
+  .pin-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #ece8e0;
+    border: 2px solid #ece8e0;
+  }
+  .pin-dot.on {
+    background: var(--text);
+    border-color: var(--text);
+  }
+  .pin-dot.err {
+    background: var(--danger);
+    border-color: var(--danger);
+    animation: shake 360ms;
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .keypad button {
+    background: #f6f3ee;
+    border-radius: var(--radius-sm);
+    padding: 18px;
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .keypad button.faint {
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .keypad button:active {
+    background: #ece8e0;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .modal-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+    font-size: 15px;
+    border: 1px solid var(--card-border);
+    background: var(--card);
+  }
+  .modal-actions button.primary {
+    background: var(--text);
+    color: var(--card);
+    border-color: var(--text);
+  }
+  .modal-actions button.danger {
+    background: var(--danger);
+    color: var(--card);
+    border-color: var(--danger);
+  }
+
+  /* ===== Settings ===== */
+  .settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--card-border);
+    gap: 12px;
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-row label {
+    font-size: 14px;
+    color: var(--text-dim);
+    flex: 1;
+    min-width: 0;
+  }
+  .settings-row input {
+    text-align: right;
+    border: none;
+    background: transparent;
+    font: inherit;
+    color: var(--text);
+    width: 140px;
+    padding: 6px;
+    border-radius: 6px;
+  }
+  .settings-row input:focus {
+    background: #f6f3ee;
+    outline: none;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--card);
+    padding: 10px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 200ms;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ===== History view ===== */
+  .history-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 14px;
+    gap: 10px;
+  }
+  .history-row .date { color: var(--text-dim); flex: 1; }
+  .history-row .pts { font-weight: 600; }
+
+  @media (max-width: 600px) {
+    .topbar h1 { font-size: 18px; }
+    .child-head .total .pts { font-size: 30px; }
+    .avatar { width: 64px; height: 64px; }
+    .item .icon { font-size: 22px; width: 32px; height: 32px; }
+    .item .icon img { max-width: 28px; max-height: 28px; }
+    .item .add, .item .remove { width: 40px; height: 40px; font-size: 20px; }
+    .daily { gap: 4px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="modal-root"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+'use strict';
+
+/* ========================================================================
+ * CONFIG
+ * ====================================================================== */
+
+const DEFAULT_WEEKLY_CAP = 210; // 1 point = 1 minute of iPad time
+const ROLLOVER_HOUR = 6; // Friday 06:00 local time
+const ROLLOVER_DAY = 5; // 0=Sun ... 5=Fri
+const UNDO_WINDOW_MS = 60 * 1000;
+const PARENT_MODE_TIMEOUT_MS = 90 * 1000;
+const STAR_DAYS_NEEDED = 4;         // starred days per week (max 7) to earn family treat
+const AVATAR_EMOJI_OPTIONS = ['🦊','🐱','🦁','🐯','🐶','🐻','🐼','🐨','🦄','🐲','🦖','🦋','🐸','🐰','🐧','🦉'];
+const AVATAR_CHARACTER_OPTIONS = [
+  { label: 'Bluey & Bingo',   src: 'profile-bluey.png' },
+  { label: 'Sisters & lamb',  src: 'profile-farm.png' },
+  { label: 'Grogu',           src: 'profile-grogu.png' },
+  { label: 'Mandalorian',     src: 'profile-mando.png' },
+  { label: 'Chief Bogo',      src: 'profile-zooBull.png' },
+  { label: 'Judy Hopps',      src: 'profile-zooRabbit.png' },
+  { label: 'Minion (Stuart)',  src: 'profile-minion1.png' },
+  { label: 'Minion (Otto)',    src: 'profile-minion2.png' },
+  { label: 'Minion (Dave)',    src: 'profile-minion3.png' },
+  { label: 'Minion (Bob)',     src: 'profile-minion4.png' },
+  { label: 'Kevin (Home Alone)', src: 'profile-kevin.png' }
+];
+
+// weeklyCap = the visible cap kids see and parents can award up to.
+// pointsCap (optional) = how many of those marks actually count for iPad minutes.
+// If pointsCap is omitted, it equals weeklyCap (all marks earn).
+const SON_ITEMS = [
+  { key: 'guitar',        label: 'Guitar practice (>20min)',           sub: '20 min timed',                icon: '🎸', points: 20, weeklyCap: 3, dailyCap: null },
+  { key: 'hands',         label: 'Hands washed on first ask',          sub: 'No second prompt',            icon: '🧼', points: 5,  weeklyCap: 7, dailyCap: 1 },
+  { key: 'roomTidy',      label: 'Bedroom (make bed + tidy clothes)',  sub: 'Bed made AND no clothes on floor', icon: '🧹', points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 3 },
+  { key: 'dinner',        label: 'Dinner finished in time',            sub: 'Visible timer',               icon: '🍽️', points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 4 },
+  { key: 'homework',      label: 'Homework finished without being asked', sub: 'School days',              icon: '📚', points: 15, weeklyCap: 5, dailyCap: 1 },
+  { key: 'firstResponse', label: '1st-response bonus (no raised voices)', sub: 'Aimed at hotspot moments', icon: '🗣️', points: 5,  weeklyCap: 7, dailyCap: 1, pointsCap: 4 },
+  { key: 'connection',    label: 'Connection time with sister',        sub: '15 min shared activity',      icon: '🤝', points: 15, weeklyCap: 7, dailyCap: 1, pointsCap: 2 }
+];
+
+// Daughter mirrors son's items in phase 1; phase 2 will customise to her abilities.
+const DAUGHTER_ITEMS = SON_ITEMS.map(item =>
+  item.key === 'connection'
+    ? { ...item, label: 'Connection time with brother' }
+    : item
+);
+
+function getItems(childKey) {
+  return childKey === 'son' ? SON_ITEMS : DAUGHTER_ITEMS;
+}
+
+const DOW_LABELS = ['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
+
+const DEFAULT_STATE = {
+  version: 5,
+  parentPin: '0000',
+  rolloverHour: ROLLOVER_HOUR,
+  weeklyCap: DEFAULT_WEEKLY_CAP,
+  weekStartISO: null,
+  weeklyTreat: '',
+  familyStars: [],
+  son: {
+    name: 'Son',
+    avatar: { type: 'image', src: 'son.png' },
+    entries: []
+  },
+  daughter: {
+    name: 'Daughter',
+    avatar: { type: 'image', src: 'daughter.png' },
+    entries: []
+  },
+  archive: []
+};
+
+/* ========================================================================
+ * STATE / PERSISTENCE
+ * ====================================================================== */
+
+const STORAGE_KEY = 'familyRewards.v1';
+let state = loadState();
+let parentMode = false;
+let parentModeTimer = null;
+let lastAdd = null; // { childKey, entry } for undo
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      migrateState(parsed);
+      return deepMerge(structuredClone(DEFAULT_STATE), parsed);
+    }
+  } catch (e) {
+    console.error('loadState failed', e);
+  }
+  const s = structuredClone(DEFAULT_STATE);
+  s.weekStartISO = currentWeekStartISO();
+  return s;
+}
+
+function migrateState(parsed) {
+  // v1 -> v2: daughter had fixedAllowance, no entries. Drop allowance, add entries.
+  if (!parsed.version || parsed.version < 2) {
+    if (parsed.daughter) {
+      if (parsed.daughter.fixedAllowance !== undefined) {
+        delete parsed.daughter.fixedAllowance;
+      }
+      if (!parsed.daughter.entries) {
+        parsed.daughter.entries = [];
+      }
+    }
+    if (parsed.weeklyCap === undefined) {
+      parsed.weeklyCap = DEFAULT_WEEKLY_CAP;
+    }
+    parsed.version = 2;
+  }
+  // v2 -> v3: convert avatarPath to avatar object; add stars[] and weeklyTreat
+  if (parsed.version < 3) {
+    for (const k of ['son', 'daughter']) {
+      if (parsed[k]) {
+        if (parsed[k].avatarPath && !parsed[k].avatar) {
+          parsed[k].avatar = { type: 'image', src: parsed[k].avatarPath };
+        }
+        delete parsed[k].avatarPath;
+        if (!Array.isArray(parsed[k].stars)) parsed[k].stars = [];
+        if (parsed[k].weeklyTreat === undefined) parsed[k].weeklyTreat = '';
+      }
+    }
+    parsed.version = 3;
+  }
+  // v3 -> v4: weekly treat becomes family-level (combined); 4-per-child -> 8-combined threshold
+  if (parsed.version < 4) {
+    parsed.weeklyTreat = parsed.son?.weeklyTreat || parsed.daughter?.weeklyTreat || '';
+    if (parsed.son) delete parsed.son.weeklyTreat;
+    if (parsed.daughter) delete parsed.daughter.weeklyTreat;
+    parsed.version = 4;
+  }
+  // v4 -> v5: per-child stars become per-day family stars (truly cooperative)
+  if (parsed.version < 5) {
+    const allDates = new Set([
+      ...(parsed.son?.stars || []),
+      ...(parsed.daughter?.stars || [])
+    ]);
+    parsed.familyStars = Array.from(allDates);
+    if (parsed.son) delete parsed.son.stars;
+    if (parsed.daughter) delete parsed.daughter.stars;
+    parsed.version = 5;
+  }
+}
+
+function saveState() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.error('saveState failed', e);
+    toast('Could not save. Storage full?');
+  }
+}
+
+function deepMerge(target, src) {
+  for (const k of Object.keys(src)) {
+    if (src[k] && typeof src[k] === 'object' && !Array.isArray(src[k])) {
+      target[k] = deepMerge(target[k] || {}, src[k]);
+    } else {
+      target[k] = src[k];
+    }
+  }
+  return target;
+}
+
+/* ========================================================================
+ * DATE LOGIC
+ * ====================================================================== */
+
+function currentWeekStartISO(now = new Date()) {
+  const d = new Date(now);
+  d.setHours(d.getHours() - ROLLOVER_HOUR);
+  while (d.getDay() !== ROLLOVER_DAY) {
+    d.setDate(d.getDate() - 1);
+  }
+  d.setHours(0,0,0,0);
+  d.setHours(d.getHours() + ROLLOVER_HOUR);
+  return toISODate(d);
+}
+
+function toISODate(d) {
+  const yr = d.getFullYear();
+  const mo = String(d.getMonth()+1).padStart(2,'0');
+  const dy = String(d.getDate()).padStart(2,'0');
+  return `${yr}-${mo}-${dy}`;
+}
+
+function todayISO() {
+  return toISODate(new Date());
+}
+
+function dayOfWeekIndex(dateISO, weekStartISO) {
+  const [y, m, d] = dateISO.split('-').map(Number);
+  const [wy, wm, wd] = weekStartISO.split('-').map(Number);
+  const date = new Date(y, m-1, d);
+  const start = new Date(wy, wm-1, wd);
+  const diff = Math.round((date - start) / (1000*60*60*24));
+  return Math.max(0, Math.min(6, diff));
+}
+
+function dateForDow(dowIndex, weekStartISO) {
+  const [wy, wm, wd] = weekStartISO.split('-').map(Number);
+  const d = new Date(wy, wm-1, wd);
+  d.setDate(d.getDate() + dowIndex);
+  return toISODate(d);
+}
+
+function formatWeekRange(weekStartISO) {
+  const [wy, wm, wd] = weekStartISO.split('-').map(Number);
+  const start = new Date(wy, wm-1, wd);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const fmt = (d) => d.toLocaleDateString(undefined, { day:'numeric', month:'short' });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
+/* ========================================================================
+ * WEEK ROLLOVER
+ * ====================================================================== */
+
+function checkWeekRollover() {
+  const expected = currentWeekStartISO();
+  if (!state.weekStartISO) {
+    state.weekStartISO = expected;
+    saveState();
+    return;
+  }
+  if (state.weekStartISO !== expected) {
+    const starDays = (state.familyStars || []).length;
+    state.archive.unshift({
+      weekStartISO: state.weekStartISO,
+      sonTotal: computeWeekTotal('son'),
+      sonEntryCount: state.son.entries.length,
+      daughterTotal: computeWeekTotal('daughter'),
+      daughterEntryCount: state.daughter.entries.length,
+      starDays: starDays,
+      treat: state.weeklyTreat || '',
+      treatEarned: starDays >= STAR_DAYS_NEEDED && !!state.weeklyTreat
+    });
+    state.archive = state.archive.slice(0, 26);
+    state.son.entries = [];
+    state.daughter.entries = [];
+    state.familyStars = [];
+    state.weeklyTreat = '';
+    state.weekStartISO = expected;
+    lastAdd = null;
+    saveState();
+  }
+}
+
+/* ========================================================================
+ * QUERIES (per child)
+ * ====================================================================== */
+
+function computeWeekTotal(childKey) {
+  return state[childKey].entries.reduce((sum, e) => sum + e.points, 0);
+}
+
+function computeDayTotals(childKey) {
+  const totals = [0,0,0,0,0,0,0];
+  for (const e of state[childKey].entries) {
+    const dow = dayOfWeekIndex(e.dateISO, state.weekStartISO);
+    totals[dow] += e.points;
+  }
+  return totals;
+}
+
+function countItemThisWeek(childKey, itemKey) {
+  return state[childKey].entries.filter(e => e.itemKey === itemKey).length;
+}
+
+function countItemToday(childKey, itemKey) {
+  const today = todayISO();
+  return state[childKey].entries.filter(e => e.itemKey === itemKey && e.dateISO === today).length;
+}
+
+function todayDow() {
+  return dayOfWeekIndex(todayISO(), state.weekStartISO);
+}
+
+function getPointsCap(item) {
+  return item.pointsCap != null ? item.pointsCap : item.weeklyCap;
+}
+
+function canAddItem(childKey, item) {
+  if (countItemThisWeek(childKey, item.key) >= item.weeklyCap) return false;
+  if (item.dailyCap && countItemToday(childKey, item.key) >= item.dailyCap) return false;
+  // Only block at global cap if THIS mark would actually earn points
+  const currentCount = countItemThisWeek(childKey, item.key);
+  const wouldEarn = currentCount < getPointsCap(item) ? item.points : 0;
+  if (computeWeekTotal(childKey) + wouldEarn > state.weeklyCap) return false;
+  return true;
+}
+
+function canRemoveItem(childKey, itemKey) {
+  return countItemThisWeek(childKey, itemKey) > 0;
+}
+
+/* ========================================================================
+ * MUTATIONS
+ * ====================================================================== */
+
+function addItem(childKey, itemKey) {
+  const item = getItems(childKey).find(i => i.key === itemKey);
+  if (!item) return;
+  if (!canAddItem(childKey, item)) return;
+  const currentCount = countItemThisWeek(childKey, item.key);
+  const earnsPoints = currentCount < getPointsCap(item);
+  const entry = {
+    id: cryptoRandom(),
+    dateISO: todayISO(),
+    itemKey: item.key,
+    points: earnsPoints ? item.points : 0,
+    ts: Date.now()
+  };
+  state[childKey].entries.push(entry);
+  lastAdd = { childKey, entry };
+  saveState();
+  resetParentTimer();
+  render();
+  // Unified toast so kids don't see when a mark didn't count for pts
+  toast(`✓ ${item.label.split(' (')[0]}`);
+}
+
+function undoLastAdd() {
+  if (!lastAdd) return;
+  if (Date.now() - lastAdd.entry.ts > UNDO_WINDOW_MS) {
+    toast('Too late to undo');
+    lastAdd = null;
+    render();
+    return;
+  }
+  const arr = state[lastAdd.childKey].entries;
+  const idx = arr.findIndex(e => e.id === lastAdd.entry.id);
+  if (idx >= 0) {
+    arr.splice(idx, 1);
+    saveState();
+    lastAdd = null;
+    render();
+    toast('Undone');
+  }
+}
+
+function removeLastOfItem(childKey, itemKey) {
+  const arr = state[childKey].entries;
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (arr[i].itemKey === itemKey) {
+      arr.splice(i, 1);
+      saveState();
+      // If we removed the last-added entry, clear undo
+      if (lastAdd && lastAdd.entry.id === arr[i]?.id) {
+        lastAdd = null;
+      }
+      render();
+      toast('Point removed');
+      return;
+    }
+  }
+}
+
+function cryptoRandom() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now() + '-' + Math.floor(Math.random()*1e8);
+}
+
+/* ========================================================================
+ * STARS & TREATS
+ * ====================================================================== */
+
+function familyStarCount() {
+  return (state.familyStars || []).length;
+}
+
+function familyTreatBarHTML() {
+  const starDays = familyStarCount();
+  const treat = state.weeklyTreat || '';
+  const remaining = Math.max(0, STAR_DAYS_NEEDED - starDays);
+  const earned = starDays >= STAR_DAYS_NEEDED && !!treat;
+
+  if (earned) {
+    return `<div class="family-treat-bar earned"><span class="icon">🎁</span> Family treat earned: <span class="treat">${escapeHtml(treat)}</span></div>`;
+  } else if (treat) {
+    return `<div class="family-treat-bar"><span class="icon">⭐</span> <span class="count">${remaining}</span> star day${remaining === 1 ? '' : 's'} to go for family treat: <span class="treat">${escapeHtml(treat)}</span></div>`;
+  } else {
+    return `<div class="family-treat-bar empty"><span class="icon">⭐</span> Family treat not yet agreed${parentMode ? ' — set in Settings' : ''}</div>`;
+  }
+}
+
+function toggleStar(dateISO) {
+  if (!parentMode) return;
+  const stars = state.familyStars = state.familyStars || [];
+  const idx = stars.indexOf(dateISO);
+  const wasEarned = stars.length >= STAR_DAYS_NEEDED;
+  if (idx >= 0) {
+    stars.splice(idx, 1);
+    toast('Star removed');
+  } else {
+    stars.push(dateISO);
+    const nowEarned = stars.length >= STAR_DAYS_NEEDED;
+    if (!wasEarned && nowEarned && state.weeklyTreat) {
+      toast('🎉 ' + STAR_DAYS_NEEDED + ' star days! Treat earned.');
+    } else {
+      toast('⭐ Star day');
+    }
+  }
+  saveState();
+  resetParentTimer();
+  render();
+}
+
+/* ========================================================================
+ * AVATAR PICKER
+ * ====================================================================== */
+
+function openAvatarPicker(childKey) {
+  const child = state[childKey];
+  const currentAvatar = child.avatar || { type: 'image', src: '' };
+  const defaultSrc = childKey === 'son' ? 'son.png' : 'daughter.png';
+  const isPhotoSelected = currentAvatar.type === 'image' && currentAvatar.src === defaultSrc;
+  const isCharSelected = (src) => currentAvatar.type === 'image' && currentAvatar.src === src;
+
+  const photoOption = `
+    <div class="avatar-option ${isPhotoSelected ? 'selected' : ''}"
+         onclick="setAvatar('${childKey}', { type: 'image', src: '${defaultSrc}' })"
+         title="Your photo">
+      <img src="${defaultSrc}" alt="photo" onerror="this.style.display='none'; this.parentNode.innerText='📷';">
+    </div>
+  `;
+  const characterOptions = AVATAR_CHARACTER_OPTIONS.map(c => `
+    <div class="avatar-option ${isCharSelected(c.src) ? 'selected' : ''}"
+         onclick="setAvatar('${childKey}', { type: 'image', src: '${c.src}' })"
+         title="${escapeAttr(c.label)}">
+      <img src="${escapeAttr(c.src)}" alt="${escapeAttr(c.label)}" onerror="this.style.display='none'; this.parentNode.innerText='🖼️';">
+    </div>
+  `).join('');
+  const emojiOptions = AVATAR_EMOJI_OPTIONS.map(e => `
+    <div class="avatar-option ${currentAvatar.type === 'emoji' && currentAvatar.value === e ? 'selected' : ''}"
+         onclick="setAvatar('${childKey}', { type: 'emoji', value: '${e}' })">
+      ${e}
+    </div>
+  `).join('');
+
+  renderModal(`
+    <div class="modal ${childKey === 'daughter' ? 'daughter-picker' : ''}" style="max-width: 460px;">
+      <h2>Choose ${escapeHtml(child.name)}'s avatar</h2>
+      <p>Tap any picture to use it. Anyone in the family can change this.</p>
+      <div class="avatar-grid">
+        ${photoOption}
+        ${characterOptions}
+        ${emojiOptions}
+      </div>
+      <div class="modal-actions">
+        <button onclick="closeModal()" class="primary">Done</button>
+      </div>
+    </div>
+  `);
+}
+
+function setAvatar(childKey, avatarObj) {
+  state[childKey].avatar = avatarObj;
+  saveState();
+  closeModal();
+  render();
+}
+
+/* ========================================================================
+ * PARENT MODE
+ * ====================================================================== */
+
+function enterParentMode() {
+  parentMode = true;
+  resetParentTimer();
+  render();
+}
+
+function exitParentMode() {
+  parentMode = false;
+  clearTimeout(parentModeTimer);
+  parentModeTimer = null;
+  lastAdd = null;
+  render();
+}
+
+function resetParentTimer() {
+  clearTimeout(parentModeTimer);
+  parentModeTimer = setTimeout(() => {
+    if (parentMode) {
+      parentMode = false;
+      lastAdd = null;
+      render();
+      toast('Parent mode timed out');
+    }
+  }, PARENT_MODE_TIMEOUT_MS);
+}
+
+/* ========================================================================
+ * RENDER
+ * ====================================================================== */
+
+function render() {
+  const app = document.getElementById('app');
+  const treatEarned = familyStarCount() >= STAR_DAYS_NEEDED && !!state.weeklyTreat;
+  app.innerHTML = `
+    <div class="app">
+      <div class="topbar">
+        <div>
+          <h1>Family Rewards</h1>
+          <div class="meta">Week of ${formatWeekRange(state.weekStartISO)} · resets Fri ${state.rolloverHour}:00 · cap ${state.weeklyCap} min/week</div>
+        </div>
+        <div class="actions">
+          ${parentMode ? `
+            <button onclick="openSettings()">Settings</button>
+            <button onclick="openHistory()">History</button>
+            <button class="parent-on" onclick="exitParentMode()">Parent ON · Exit</button>
+          ` : `
+            <button onclick="openPinPad()">Parent mode</button>
+          `}
+        </div>
+      </div>
+
+      <div class="cards ${treatEarned ? 'treat-earned' : ''}">
+        ${childCardHTML('son')}
+        ${childCardHTML('daughter')}
+      </div>
+
+      ${familyTreatBarHTML()}
+
+      ${renderUndoFooter()}
+    </div>
+  `;
+}
+
+function childCardHTML(childKey) {
+  const child = state[childKey];
+  const total = computeWeekTotal(childKey);
+  const dayTotals = computeDayTotals(childKey);
+  const today = todayDow();
+  const cap = state.weeklyCap;
+  const items = getItems(childKey);
+  const lastWeekTotal = state.archive[0]?.[childKey + 'Total'];
+  const lastWeekDisplay = (lastWeekTotal === undefined || lastWeekTotal === null) ? '—' : lastWeekTotal;
+  const stars = state.familyStars || [];
+
+  return `
+    <div class="card ${childKey}">
+      <div class="child-head">
+        ${avatarHTML(childKey, child)}
+        <div class="who">
+          <div class="name">${escapeHtml(child.name)}</div>
+          <div class="sub">Earn rewards by helping with daily tasks</div>
+        </div>
+        <div class="total">
+          <div class="pts">${total}</div>
+          <div class="mini-progress">
+            <div class="mini-progress-fill ${total >= cap ? 'full' : ''}" style="width: ${Math.min(100, (total/cap)*100)}%"></div>
+          </div>
+          <div class="of">of ${cap} min this week</div>
+        </div>
+      </div>
+      <div class="daily">
+        <div class="day last-week" title="Previous week's total (minutes)">
+          <div class="dow">Last</div>
+          <div class="pts">${lastWeekDisplay}</div>
+        </div>
+        ${DOW_LABELS.map((d, i) => {
+          const dateISO = dateForDow(i, state.weekStartISO);
+          const starred = stars.includes(dateISO);
+          const cls = ['day', i === today ? 'today' : '', starred ? 'starred' : '', parentMode ? 'parent-tappable' : ''].filter(Boolean).join(' ');
+          const onclick = parentMode ? `onclick="toggleStar('${dateISO}')"` : '';
+          const title = parentMode ? `title="Tap to ${starred ? 'remove' : 'award'} a star for ${d}"` : '';
+          return `
+            <div class="${cls}" ${onclick} ${title}>
+              <div class="dow">${d}</div>
+              <div class="pts">${dayTotals[i]}</div>
+              <div class="star-slot ${starred ? 'starred' : ''}">${starred ? '⭐' : ''}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      <div class="items">
+        ${items.map(item => itemHTML(childKey, item)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function iconHTML(icon) {
+  if (typeof icon === 'string' && /^https?:\/\//.test(icon)) {
+    return `<img src="${escapeAttr(icon)}" alt="">`;
+  }
+  return escapeHtml(icon);
+}
+
+function avatarHTML(childKey, child) {
+  const avatar = child.avatar || { type: 'image', src: '' };
+  const initial = (child.name || '?').charAt(0).toUpperCase();
+  const inner = avatar.type === 'emoji'
+    ? `<span class="avatar-emoji">${escapeHtml(avatar.value || initial)}</span>`
+    : `<img src="${escapeAttr(avatar.src)}" alt="${escapeAttr(child.name)}" onerror="this.style.display='none'; this.parentNode.innerText='${escapeHtml(initial)}'">`;
+  return `
+    <div class="avatar" onclick="openAvatarPicker('${childKey}')" title="Tap to change avatar">
+      ${inner}
+    </div>
+  `;
+}
+
+function itemHTML(childKey, item) {
+  const weekCount = countItemThisWeek(childKey, item.key);
+  const dayCount = item.dailyCap ? countItemToday(childKey, item.key) : null;
+  const pointsCap = getPointsCap(item);
+  const earnedMarks = Math.min(weekCount, pointsCap);
+  const weekPoints = earnedMarks * item.points;
+  const maxWeekPoints = pointsCap * item.points;
+  const allowed = canAddItem(childKey, item);
+  const removable = canRemoveItem(childKey, item.key);
+  const atCap = weekCount >= item.weeklyCap || (item.dailyCap && dayCount >= item.dailyCap);
+
+  const pipMax = item.dailyCap || item.weeklyCap;
+  const pipFilled = item.dailyCap ? dayCount : weekCount;
+  const pipsHTML = Array.from({length: pipMax}, (_, i) => {
+    const filled = i < pipFilled;
+    return `<span class="pip ${filled ? 'filled' : ''}"></span>`;
+  }).join('');
+
+  const scope = item.dailyCap ? `today ${dayCount}/${item.dailyCap}` : `${weekCount}/${item.weeklyCap} this week`;
+
+  // Parents see the true points-cap detail; kids see only checkmark progress
+  const subDetail = parentMode
+    ? `${scope} · ${weekPoints}/${maxWeekPoints} pts cap`
+    : `${scope}`;
+
+  return `
+    <div class="item ${atCap ? 'disabled' : ''}">
+      <div class="icon">${iconHTML(item.icon)}</div>
+      <div class="body">
+        <div class="label">${escapeHtml(item.label)} <span class="ptv">+${item.points} pts</span></div>
+        <div class="sub">
+          <span class="pips">${pipsHTML}</span>
+          ${subDetail}
+        </div>
+      </div>
+      ${parentMode ? `
+        <div class="btn-group">
+          <button class="remove" ${removable ? '' : 'disabled'} onclick="confirmRemove('${childKey}','${item.key}')" aria-label="Remove ${escapeAttr(item.label)}">−</button>
+          <button class="add" ${allowed ? '' : 'disabled'} onclick="addItem('${childKey}','${item.key}')" aria-label="Add ${escapeAttr(item.label)}">+</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderUndoFooter() {
+  if (!parentMode || !lastAdd) return '';
+  const ageMs = Date.now() - lastAdd.entry.ts;
+  if (ageMs > UNDO_WINDOW_MS) return '';
+  const remaining = Math.ceil((UNDO_WINDOW_MS - ageMs) / 1000);
+  const item = getItems(lastAdd.childKey).find(i => i.key === lastAdd.entry.itemKey);
+  const childName = state[lastAdd.childKey].name;
+  return `
+    <div class="footer">
+      <button class="undo" onclick="undoLastAdd()">Undo last (${escapeHtml(childName)}: ${item ? escapeHtml(item.label) : lastAdd.entry.itemKey}, +${lastAdd.entry.points} pts) · ${remaining}s</button>
+    </div>
+  `;
+}
+
+/* ========================================================================
+ * MODALS
+ * ====================================================================== */
+
+let pinEntered = '';
+
+function openPinPad() {
+  pinEntered = '';
+  renderModal(`
+    <div class="modal">
+      <h2>Enter parent PIN</h2>
+      <p>Children can view; only parents can add or remove points.</p>
+      <div class="pin-display" id="pin-display">
+        ${[0,1,2,3].map(i => `<div class="pin-dot" id="pin-${i}"></div>`).join('')}
+      </div>
+      <div class="keypad">
+        ${[1,2,3,4,5,6,7,8,9].map(n => `<button onclick="pinPress('${n}')">${n}</button>`).join('')}
+        <button class="faint" onclick="closeModal()">Cancel</button>
+        <button onclick="pinPress('0')">0</button>
+        <button class="faint" onclick="pinPress('back')">⌫</button>
+      </div>
+    </div>
+  `);
+}
+
+function pinPress(k) {
+  if (k === 'back') {
+    pinEntered = pinEntered.slice(0, -1);
+  } else if (pinEntered.length < 4) {
+    pinEntered += k;
+  }
+  for (let i = 0; i < 4; i++) {
+    const el = document.getElementById(`pin-${i}`);
+    if (el) {
+      el.classList.toggle('on', i < pinEntered.length);
+      el.classList.remove('err');
+    }
+  }
+  if (pinEntered.length === 4) {
+    if (pinEntered === state.parentPin) {
+      closeModal();
+      enterParentMode();
+    } else {
+      for (let i = 0; i < 4; i++) {
+        const el = document.getElementById(`pin-${i}`);
+        if (el) el.classList.add('err');
+      }
+      setTimeout(() => {
+        pinEntered = '';
+        for (let i = 0; i < 4; i++) {
+          const el = document.getElementById(`pin-${i}`);
+          if (el) { el.classList.remove('err','on'); }
+        }
+      }, 500);
+    }
+  }
+}
+
+function confirmRemove(childKey, itemKey) {
+  if (!canRemoveItem(childKey, itemKey)) return;
+  const item = getItems(childKey).find(i => i.key === itemKey);
+  const childName = state[childKey].name;
+  renderModal(`
+    <div class="modal">
+      <h2>Remove a point?</h2>
+      <div class="warn-box">
+        <div class="heading">⚠ This system is designed not to dock points.</div>
+        <div class="body">Docking re-creates the loss-aversion arguments that this system exists to escape. Use this only for genuine mistakes (e.g. wrong row tapped), <strong>never to penalise later behaviour</strong>. If you're tempted to remove a point because the behaviour didn't last, don't — just stop adding more.</div>
+      </div>
+      <p>Remove the most recent <strong>${escapeHtml(item.label)}</strong> mark (−${item.points} pts) from <strong>${escapeHtml(childName)}</strong>?</p>
+      <div class="modal-actions">
+        <button onclick="closeModal()">Cancel</button>
+        <button class="danger" onclick="closeModal(); removeLastOfItem('${childKey}','${itemKey}')">Remove anyway</button>
+      </div>
+    </div>
+  `);
+}
+
+function openSettings() {
+  renderModal(`
+    <div class="modal" style="max-width: 460px;">
+      <h2>Settings</h2>
+      <p>Changes save when you tap away from the field. Pre-agreed treats reset every Friday.</p>
+      <div>
+        <div class="settings-row">
+          <label>Weekly cap (min)</label>
+          <input type="number" value="${state.weeklyCap}" min="30" max="900" onblur="updateSetting('weeklyCap', Math.max(30, Math.min(900, parseInt(this.value)||${DEFAULT_WEEKLY_CAP})))">
+        </div>
+        <div class="settings-row">
+          <label>Family treat this week<br><span style="font-size:11px;color:var(--text-faint);">earned when ${STAR_DAYS_NEEDED} of 7 days are starred</span></label>
+          <input type="text" value="${escapeAttr(state.weeklyTreat || '')}" placeholder="e.g. Choose restaurant" onblur="updateSetting('weeklyTreat', this.value)">
+        </div>
+        <div class="settings-row">
+          <label>Son's name</label>
+          <input type="text" value="${escapeAttr(state.son.name)}" onblur="updateSetting('son.name', this.value)">
+        </div>
+        <div class="settings-row">
+          <label>Daughter's name</label>
+          <input type="text" value="${escapeAttr(state.daughter.name)}" onblur="updateSetting('daughter.name', this.value)">
+        </div>
+        <div class="settings-row">
+          <label>Parent PIN (4 digits)</label>
+          <input type="text" value="${escapeAttr(state.parentPin)}" maxlength="4" pattern="\\d{4}" onblur="updateSetting('parentPin', this.value.replace(/[^0-9]/g,'').padEnd(4,'0').slice(0,4))">
+        </div>
+      </div>
+      <p style="font-size:12px;color:var(--text-faint);margin-top:14px;">Avatars are changed by tapping the picture on the main screen.</p>
+      <div class="modal-actions">
+        <button onclick="closeModal()" class="primary">Done</button>
+      </div>
+    </div>
+  `);
+}
+
+function updateSetting(path, value) {
+  const parts = path.split('.');
+  let obj = state;
+  for (let i = 0; i < parts.length - 1; i++) obj = obj[parts[i]];
+  obj[parts[parts.length-1]] = value;
+  saveState();
+  render();
+}
+
+function openHistory() {
+  const rows = state.archive.length === 0
+    ? `<p style="color: var(--text-dim); text-align:center; padding: 20px 0;">No archived weeks yet. The first archive will appear after Friday's auto-reset.</p>`
+    : state.archive.map(a => `
+        <div class="history-row">
+          <span class="date">Week of ${formatWeekRange(a.weekStartISO)}${a.manual ? ' (manual)' : ''}</span>
+          <span class="pts">${escapeHtml(state.son.name)}: ${a.sonTotal} min · ${escapeHtml(state.daughter.name)}: ${a.daughterTotal == null ? '—' : a.daughterTotal + ' min'}${a.starDays != null ? ' · ⭐ ' + a.starDays + '/' + STAR_DAYS_NEEDED + (a.treatEarned ? ' 🎁' : '') : ''}</span>
+        </div>
+      `).join('');
+  renderModal(`
+    <div class="modal" style="max-width: 540px;">
+      <h2>History</h2>
+      <p>Last ${state.archive.length} week${state.archive.length === 1 ? '' : 's'}. Use for quarterly review.</p>
+      <div style="max-height: 50vh; overflow-y: auto;">
+        ${rows}
+      </div>
+      <div class="modal-actions">
+        <button onclick="exportData()">Export JSON</button>
+        <button onclick="closeModal()" class="primary">Close</button>
+      </div>
+    </div>
+  `);
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `family-rewards-export-${todayISO()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function renderModal(html) {
+  document.getElementById('modal-root').innerHTML = `<div class="modal-bg" onclick="if (event.target === this) closeModal()">${html}</div>`;
+}
+
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+}
+
+/* ========================================================================
+ * TOAST
+ * ====================================================================== */
+
+let toastTimer = null;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+}
+
+/* ========================================================================
+ * UTILS
+ * ====================================================================== */
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ========================================================================
+ * BOOT
+ * ====================================================================== */
+
+setInterval(() => {
+  checkWeekRollover();
+  render();
+}, 30 * 1000);
+
+setInterval(() => {
+  if (parentMode && lastAdd) render();
+}, 1000);
+
+checkWeekRollover();
+render();
+
+Object.assign(window, {
+  openPinPad, pinPress, closeModal,
+  enterParentMode, exitParentMode,
+  addItem, undoLastAdd, removeLastOfItem, confirmRemove,
+  openSettings, openHistory, updateSetting,
+  toggleStar, openAvatarPicker, setAvatar,
+  exportData
+});
+</script>
+</body>
+</html>
