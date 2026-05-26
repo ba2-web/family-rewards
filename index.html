@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Family Rewards">
-<title>Family Rewards</title>
+<meta name="apple-mobile-web-app-title" content="Family Quest">
+<title>Family Quest</title>
 <style>
   :root {
     --bg: #faf7f2;
@@ -15,12 +15,13 @@
     --text: #1a1a1a;
     --text-dim: #6b6b6b;
     --text-faint: #a3a3a3;
-    --son-accent: #b45309;
-    --son-accent-soft: #fef3e2;
-    --daughter-accent: #be185d;
-    --daughter-accent-soft: #fce7f3;
-    --good: #15803d;
-    --good-soft: #dcfce7;
+    /* Unified green accent for both children. */
+    --son-accent: #16a34a;
+    --son-accent-soft: #dcfce7;
+    --daughter-accent: #16a34a;
+    --daughter-accent-soft: #dcfce7;
+    --good: #166534;        /* darker green for 'earned/full' state, distinct from accent */
+    --good-soft: #bbf7d0;
     --danger: #b91c1c;
     --danger-soft: #fee2e2;
     --shadow-sm: 0 1px 2px rgba(20,20,20,0.04), 0 1px 1px rgba(20,20,20,0.03);
@@ -372,6 +373,16 @@
   .items {
     padding: 0 14px 16px;
   }
+  .bonus-section-header {
+    margin: 6px 10px 4px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-border);
+    font-size: 11px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+  }
   .item {
     display: flex;
     align-items: center;
@@ -379,6 +390,54 @@
     padding: 12px 10px;
     border-radius: var(--radius-sm);
     transition: background 120ms;
+  }
+  .item .icon, .item .body { cursor: pointer; }
+  .item .body:active, .item .icon:active { opacity: 0.55; }
+
+  /* ===== Item detail modal ===== */
+  .item-modal-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .item-modal-icon {
+    font-size: 32px;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .item-modal-icon img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+    border-radius: 6px;
+  }
+  .bonus-tag {
+    display: inline-block;
+    background: #fef3c7;
+    color: #92400e;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+  .item-detail-modal .pts-line {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .item-detail-modal .parent-meta {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--card-border);
   }
   .item + .item {
     border-top: 1px solid var(--card-border);
@@ -698,7 +757,7 @@ const ROLLOVER_HOUR = 6; // Friday 06:00 local time
 const ROLLOVER_DAY = 5; // 0=Sun ... 5=Fri
 const UNDO_WINDOW_MS = 60 * 1000;
 const PARENT_MODE_TIMEOUT_MS = 90 * 1000;
-const STAR_DAYS_NEEDED = 4;         // starred days per week (max 7) to earn family treat
+const DEFAULT_STAR_DAYS_NEEDED = 4; // starred days per week (max 7) to earn family treat — editable in settings
 const AVATAR_EMOJI_OPTIONS = ['🦊','🐱','🦁','🐯','🐶','🐻','🐼','🐨','🦄','🐲','🦖','🦋','🐸','🐰','🐧','🦉'];
 const AVATAR_CHARACTER_OPTIONS = [
   { label: 'Bluey & Bingo',   src: 'profile-bluey.png' },
@@ -717,22 +776,51 @@ const AVATAR_CHARACTER_OPTIONS = [
 // weeklyCap = the visible cap kids see and parents can award up to.
 // pointsCap (optional) = how many of those marks actually count for iPad minutes.
 // If pointsCap is omitted, it equals weeklyCap (all marks earn).
+// bonus: true = renders below the regular tasks under a divider.
+// description = shown in the popup when a kid taps the row.
 const SON_ITEMS = [
-  { key: 'guitar',        label: 'Guitar practice (>20min)',           sub: '20 min timed',                icon: '🎸', points: 20, weeklyCap: 3, dailyCap: null },
-  { key: 'hands',         label: 'Hands washed on first ask',          sub: 'No second prompt',            icon: '🧼', points: 5,  weeklyCap: 7, dailyCap: 1 },
-  { key: 'roomTidy',      label: 'Bedroom (make bed + tidy clothes)',  sub: 'Bed made AND no clothes on floor', icon: '🧹', points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 3 },
-  { key: 'dinner',        label: 'Dinner finished in time',            sub: 'Visible timer',               icon: '🍽️', points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 4 },
-  { key: 'homework',      label: 'Homework finished without being asked', sub: 'School days',              icon: '📚', points: 15, weeklyCap: 5, dailyCap: 1 },
-  { key: 'firstResponse', label: '1st-response bonus (no raised voices)', sub: 'Aimed at hotspot moments', icon: '🗣️', points: 5,  weeklyCap: 7, dailyCap: 1, pointsCap: 4 },
-  { key: 'connection',    label: 'Connection time with sister',        sub: '15 min shared activity',      icon: '🤝', points: 15, weeklyCap: 7, dailyCap: 1, pointsCap: 2 }
+  // --- 6 regular tasks ---
+  { key: 'guitar', label: 'Guitar practice (>15min)', sub: '15 min timed', icon: '🎸',
+    points: 15, weeklyCap: 3, dailyCap: null,
+    description: 'Practice guitar for at least 15 minutes. A visible timer is set at the start — if it beeps before 15, the point does not count. The timer decides, not parents.' },
+  { key: 'hands', label: 'Hands washed on first ask', sub: 'No second prompt', icon: '🧼',
+    points: 5, weeklyCap: 7, dailyCap: 1,
+    description: 'When mum or dad asks once — before meals, after the toilet, after coming home — wash hands without needing a second prompt. One verbal request is enough.' },
+  { key: 'dinner', label: 'Dinner finished in time', sub: 'Visible timer', icon: '🍽️',
+    points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 3,
+    description: 'Finish the agreed dinner portion before the visible timer runs out. Parents set the timer at the start of the meal — usually 10 to 20 minutes depending on the food.' },
+  { key: 'homework', label: 'Homework finished without being asked', sub: 'School days', icon: '📚',
+    points: 10, weeklyCap: 5, dailyCap: 1,
+    description: 'Sit down to homework and finish it without being prompted. The point is for starting on your own as much as for finishing it.' },
+  { key: 'roomTidy', label: 'Bedroom (make bed + tidy clothes)', sub: 'Bed made AND no clothes on floor', icon: '🧹',
+    points: 10, weeklyCap: 7, dailyCap: 1, pointsCap: 4,
+    description: 'Both are needed for the point: bed made in the morning before breakfast, AND no clothes on the bedroom floor at bedtime. Dirty clothes go in the laundry basket; clean clothes folded or hung up.' },
+  { key: 'connection', label: 'Do an activity with sister (>10 min, not TV)', sub: 'Reading, building, playing — anything together', icon: '🤝',
+    points: 15, weeklyCap: 7, dailyCap: 1, pointsCap: 2,
+    description: 'Spend at least 10 minutes doing something together with your sister — building, drawing, playing, board games, reading, anything where you are both active. TV does not count.' },
+
+  // --- 2 bonus tasks (shown below a divider) ---
+  { key: 'firstResponse', label: 'First-response (no raised voices)', sub: 'Aimed at hotspot moments', icon: '🗣️',
+    points: 5, weeklyCap: 7, dailyCap: 1, pointsCap: 4, bonus: true,
+    description: 'When asked at a hotspot moment — the dinner bell, time to come downstairs, time for bed — respond without raising your voice or arguing. Aimed at the day\'s hardest transitions.' },
+  { key: 'dinnerTopic', label: 'Start a dinner table topic', sub: 'A question, story, or something interesting', icon: '💬',
+    points: 5, weeklyCap: 7, dailyCap: 1, pointsCap: 4, bonus: true,
+    description: 'Bring something to dinner conversation that gets everyone talking — a story from school, a question for the family, something interesting you noticed today. Not just "good" or "fine" in answer to "how was your day".' }
 ];
 
-// Daughter mirrors son's items in phase 1; phase 2 will customise to her abilities.
-const DAUGHTER_ITEMS = SON_ITEMS.map(item =>
-  item.key === 'connection'
-    ? { ...item, label: 'Connection time with brother' }
-    : item
-);
+// Daughter mirrors son's items; guitar, homework and connection labels differ.
+const DAUGHTER_ITEMS = SON_ITEMS.map(item => {
+  if (item.key === 'guitar')     return { ...item,
+    label: 'Maths app', sub: 'School-set tasks', icon: '🧮',
+    description: 'Complete the day\'s school-set tasks on the maths app. The point is for finishing what was assigned, not for time spent — done is done.' };
+  if (item.key === 'connection') return { ...item,
+    label: 'Do an activity with brother (>10 min, not TV)',
+    description: 'Spend at least 10 minutes doing something together with your brother — building, drawing, playing, board games, reading, anything where you are both active. TV does not count.' };
+  if (item.key === 'homework')   return { ...item,
+    label: 'Read a book to a parent', sub: 'Out loud, any time of day', icon: '📖',
+    description: 'Read out loud to mum or dad. Any book, any time of day, for however long feels right together.' };
+  return item;
+});
 
 function getItems(childKey) {
   return childKey === 'son' ? SON_ITEMS : DAUGHTER_ITEMS;
@@ -741,11 +829,12 @@ function getItems(childKey) {
 const DOW_LABELS = ['Fri','Sat','Sun','Mon','Tue','Wed','Thu'];
 
 const DEFAULT_STATE = {
-  version: 5,
+  version: 6,
   parentPin: '0000',
   rolloverHour: ROLLOVER_HOUR,
   weeklyCap: DEFAULT_WEEKLY_CAP,
   weekStartISO: null,
+  starDaysNeeded: DEFAULT_STAR_DAYS_NEEDED,
   weeklyTreat: '',
   familyStars: [],
   son: {
@@ -834,6 +923,11 @@ function migrateState(parsed) {
     if (parsed.son) delete parsed.son.stars;
     if (parsed.daughter) delete parsed.daughter.stars;
     parsed.version = 5;
+  }
+  // v5 -> v6: star-days threshold becomes editable
+  if (parsed.version < 6) {
+    if (parsed.starDaysNeeded === undefined) parsed.starDaysNeeded = DEFAULT_STAR_DAYS_NEEDED;
+    parsed.version = 6;
   }
 }
 
@@ -929,7 +1023,7 @@ function checkWeekRollover() {
       daughterEntryCount: state.daughter.entries.length,
       starDays: starDays,
       treat: state.weeklyTreat || '',
-      treatEarned: starDays >= STAR_DAYS_NEEDED && !!state.weeklyTreat
+      treatEarned: starDays >= state.starDaysNeeded && !!state.weeklyTreat
     });
     state.archive = state.archive.slice(0, 26);
     state.son.entries = [];
@@ -1068,8 +1162,8 @@ function familyStarCount() {
 function familyTreatBarHTML() {
   const starDays = familyStarCount();
   const treat = state.weeklyTreat || '';
-  const remaining = Math.max(0, STAR_DAYS_NEEDED - starDays);
-  const earned = starDays >= STAR_DAYS_NEEDED && !!treat;
+  const remaining = Math.max(0, state.starDaysNeeded - starDays);
+  const earned = starDays >= state.starDaysNeeded && !!treat;
 
   if (earned) {
     return `<div class="family-treat-bar earned"><span class="icon">🎁</span> Family treat earned: <span class="treat">${escapeHtml(treat)}</span></div>`;
@@ -1084,15 +1178,15 @@ function toggleStar(dateISO) {
   if (!parentMode) return;
   const stars = state.familyStars = state.familyStars || [];
   const idx = stars.indexOf(dateISO);
-  const wasEarned = stars.length >= STAR_DAYS_NEEDED;
+  const wasEarned = stars.length >= state.starDaysNeeded;
   if (idx >= 0) {
     stars.splice(idx, 1);
     toast('Star removed');
   } else {
     stars.push(dateISO);
-    const nowEarned = stars.length >= STAR_DAYS_NEEDED;
+    const nowEarned = stars.length >= state.starDaysNeeded;
     if (!wasEarned && nowEarned && state.weeklyTreat) {
-      toast('🎉 ' + STAR_DAYS_NEEDED + ' star days! Treat earned.');
+      toast('🎉 ' + state.starDaysNeeded + ' star days! Treat earned.');
     } else {
       toast('⭐ Star day');
     }
@@ -1193,12 +1287,12 @@ function resetParentTimer() {
 
 function render() {
   const app = document.getElementById('app');
-  const treatEarned = familyStarCount() >= STAR_DAYS_NEEDED && !!state.weeklyTreat;
+  const treatEarned = familyStarCount() >= state.starDaysNeeded && !!state.weeklyTreat;
   app.innerHTML = `
     <div class="app">
       <div class="topbar">
         <div>
-          <h1>Family Rewards</h1>
+          <h1>Family Quest</h1>
           <div class="meta">Week of ${formatWeekRange(state.weekStartISO)} · resets Fri ${state.rolloverHour}:00 · cap ${state.weeklyCap} min/week</div>
         </div>
         <div class="actions">
@@ -1272,10 +1366,36 @@ function childCardHTML(childKey) {
         }).join('')}
       </div>
       <div class="items">
-        ${items.map(item => itemHTML(childKey, item)).join('')}
+        ${items.filter(i => !i.bonus).map(item => itemHTML(childKey, item)).join('')}
+        ${items.some(i => i.bonus) ? `<div class="bonus-section-header">Bonus tasks</div>` : ''}
+        ${items.filter(i => i.bonus).map(item => itemHTML(childKey, item)).join('')}
       </div>
     </div>
   `;
+}
+
+function openItemDetail(childKey, itemKey) {
+  const item = getItems(childKey).find(i => i.key === itemKey);
+  if (!item) return;
+  const visibleCap = item.weeklyCap;
+  const pointsCap = getPointsCap(item);
+  const maxWeekPoints = pointsCap * item.points;
+
+  renderModal(`
+    <div class="modal item-detail-modal">
+      <h2 class="item-modal-title">
+        <span class="item-modal-icon">${iconHTML(item.icon)}</span>
+        <span>${escapeHtml(item.label)}</span>
+      </h2>
+      ${item.bonus ? `<div class="bonus-tag">⭐ BONUS</div>` : ''}
+      <p>${escapeHtml(item.description || 'No detail provided yet.')}</p>
+      <p class="pts-line">+${item.points} pts each${item.dailyCap ? ` · today ${countItemToday(childKey, item.key)}/${item.dailyCap}` : ''} · ${countItemThisWeek(childKey, item.key)}/${visibleCap} this week</p>
+      ${parentMode ? `<p class="parent-meta">Visible cap: ${visibleCap}/wk · Earning cap: ${pointsCap}/wk (${maxWeekPoints} pts max)</p>` : ''}
+      <div class="modal-actions">
+        <button onclick="closeModal()" class="primary">Got it</button>
+      </div>
+    </div>
+  `);
 }
 
 function iconHTML(icon) {
@@ -1324,9 +1444,9 @@ function itemHTML(childKey, item) {
     : `${scope}`;
 
   return `
-    <div class="item ${atCap ? 'disabled' : ''}">
-      <div class="icon">${iconHTML(item.icon)}</div>
-      <div class="body">
+    <div class="item ${atCap ? 'disabled' : ''} ${item.bonus ? 'bonus' : ''}">
+      <div class="icon" onclick="openItemDetail('${childKey}','${item.key}')">${iconHTML(item.icon)}</div>
+      <div class="body" onclick="openItemDetail('${childKey}','${item.key}')">
         <div class="label">${escapeHtml(item.label)} <span class="ptv">+${item.points} pts</span></div>
         <div class="sub">
           <span class="pips">${pipsHTML}</span>
@@ -1446,7 +1566,11 @@ function openSettings() {
           <input type="number" value="${state.weeklyCap}" min="30" max="900" onblur="updateSetting('weeklyCap', Math.max(30, Math.min(900, parseInt(this.value)||${DEFAULT_WEEKLY_CAP})))">
         </div>
         <div class="settings-row">
-          <label>Family treat this week<br><span style="font-size:11px;color:var(--text-faint);">earned when ${STAR_DAYS_NEEDED} of 7 days are starred</span></label>
+          <label>Star days needed for treat<br><span style="font-size:11px;color:var(--text-faint);">1 to 7</span></label>
+          <input type="number" value="${state.starDaysNeeded}" min="1" max="7" onblur="updateSetting('starDaysNeeded', Math.max(1, Math.min(7, parseInt(this.value)||${DEFAULT_STAR_DAYS_NEEDED})))">
+        </div>
+        <div class="settings-row">
+          <label>Family treat this week<br><span style="font-size:11px;color:var(--text-faint);">earned when ${state.starDaysNeeded} of 7 days are starred</span></label>
           <input type="text" value="${escapeAttr(state.weeklyTreat || '')}" placeholder="e.g. Choose restaurant" onblur="updateSetting('weeklyTreat', this.value)">
         </div>
         <div class="settings-row">
@@ -1485,7 +1609,7 @@ function openHistory() {
     : state.archive.map(a => `
         <div class="history-row">
           <span class="date">Week of ${formatWeekRange(a.weekStartISO)}${a.manual ? ' (manual)' : ''}</span>
-          <span class="pts">${escapeHtml(state.son.name)}: ${a.sonTotal} min · ${escapeHtml(state.daughter.name)}: ${a.daughterTotal == null ? '—' : a.daughterTotal + ' min'}${a.starDays != null ? ' · ⭐ ' + a.starDays + '/' + STAR_DAYS_NEEDED + (a.treatEarned ? ' 🎁' : '') : ''}</span>
+          <span class="pts">${escapeHtml(state.son.name)}: ${a.sonTotal} min · ${escapeHtml(state.daughter.name)}: ${a.daughterTotal == null ? '—' : a.daughterTotal + ' min'}${a.starDays != null ? ' · ⭐ ' + a.starDays + (a.treatEarned ? ' 🎁' : '') : ''}</span>
         </div>
       `).join('');
   renderModal(`
@@ -1565,6 +1689,7 @@ Object.assign(window, {
   addItem, undoLastAdd, removeLastOfItem, confirmRemove,
   openSettings, openHistory, updateSetting,
   toggleStar, openAvatarPicker, setAvatar,
+  openItemDetail,
   exportData
 });
 </script>
