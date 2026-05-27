@@ -303,7 +303,7 @@
     position: relative;
   }
   .day.starred {
-    background: #fef9c3;
+    background-color: #fef9c3;
     box-shadow: inset 0 0 0 2px #facc15;
   }
   .day.parent-tappable, .day.joke-tappable {
@@ -312,23 +312,21 @@
   .day.parent-tappable:active, .day.joke-tappable:active {
     transform: scale(0.95);
   }
-  .day .star-slot {
+  .day .indicators {
     margin-top: 4px;
     min-height: 20px;
-    font-size: 18px;
-    line-height: 1;
-    text-align: center;
-  }
-  .day .joke-icon {
-    position: absolute;
-    top: 2px;
-    right: 4px;
-    font-size: 13px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    font-size: 17px;
     line-height: 1;
   }
-  .treat-earned .day.starred .star-slot {
-    animation: starPulse 1600ms infinite ease-in-out;
+  .day .ind-star, .day .ind-joke {
     display: inline-block;
+  }
+  .treat-earned .day.starred .ind-star {
+    animation: starPulse 1600ms infinite ease-in-out;
   }
 
   /* ===== Joke modal ===== */
@@ -378,14 +376,14 @@
     padding: 0 22px 18px;
   }
   .day {
-    background: #f6f3ee;
+    background-color: #f6f3ee;
     border-radius: 8px;
     padding: 8px 4px;
     text-align: center;
     font-size: 12px;
   }
   .day.last-week {
-    background: #e2e8f0;
+    background-color: #e2e8f0;
     box-shadow: inset -2px 0 0 #94a3b8;
   }
   .day.last-week .dow {
@@ -807,8 +805,8 @@ const ROLLOVER_DAY = 5; // 0=Sun ... 5=Fri
 const UNDO_WINDOW_MS = 60 * 1000;
 const PARENT_MODE_TIMEOUT_MS = 90 * 1000;
 const DEFAULT_STAR_DAYS_NEEDED = 4; // starred days per week (max 7) to earn family treat — editable in settings
-const DEFAULT_JOKE_THRESHOLD_SON = 60;       // daily pts to unlock a kid-joke for that day (editable per-child)
-const DEFAULT_JOKE_THRESHOLD_DAUGHTER = 50;
+const DEFAULT_JOKE_THRESHOLD_SON = 40;       // daily pts to unlock a kid-joke for that day (editable per-child)
+const DEFAULT_JOKE_THRESHOLD_DAUGHTER = 35;
 const AVATAR_EMOJI_OPTIONS = ['🦊','🐱','🦁','🐯','🐶','🐻','🐼','🐨','🦄','🐲','🦖','🦋','🐰'];
 // 365+ kid-appropriate jokes. Deterministically selected by (childKey + dateISO).
 const KID_JOKES = [
@@ -840,7 +838,6 @@ const KID_JOKES = [
   { s: "What do you call a polite turkey?", p: "A gobble-tleman." },
   { s: "What do you call a sleeping dinosaur?", p: "A dino-snore." },
   { s: "Why did the dog sit in the shade?", p: "He didn't want to be a hot dog." },
-  { s: "What do you call a fish with two knees?", p: "A two-knee fish." },
   { s: "Why do pandas like old movies?", p: "Because they're in black and white." },
   { s: "What do you call a deer with no eyes?", p: "No-eye-deer." },
   { s: "Why don't crabs ever donate to charity?", p: "Because they're shellfish." },
@@ -850,7 +847,6 @@ const KID_JOKES = [
   { s: "Why are skunks so good at debate?", p: "They have a lot of sense." },
   { s: "What do you call a bee that can't make up its mind?", p: "A maybe." },
   { s: "Why did the chicken cross the playground?", p: "To get to the other slide." },
-  { s: "What do you call a sheep with no legs?", p: "A cloud." },
   { s: "What kind of bird does construction?", p: "A crane." },
   { s: "Why did the cookie go to the doctor?", p: "Because it was feeling crummy." },
   { s: "Why did the banana go to the doctor?", p: "Because it wasn't peeling well." },
@@ -869,11 +865,9 @@ const KID_JOKES = [
   { s: "What do you call a fake noodle?", p: "An impasta." },
   { s: "What do you call a baby potato?", p: "A small fry." },
   { s: "Why did the pancake go to the gym?", p: "To get flipping fit." },
-  { s: "What's the slowest fruit?", p: "A bana-naaaaa." },
   { s: "What did the corn say to the popcorn?", p: "Stop popping in on me." },
   { s: "Why don't cookies sleep at night?", p: "They keep getting crumbs in the bed." },
   { s: "Why did the bread complain?", p: "It was loafing around." },
-  { s: "Why did the carrot blush?", p: "Because it saw the salad dressing." },
   { s: "Knock knock! Who's there? Lettuce.", p: "Lettuce who? Lettuce in, it's cold out here." },
   { s: "Knock knock! Who's there? Boo.", p: "Boo who? Don't cry, it's only a joke." },
   { s: "Knock knock! Who's there? Cows go.", p: "Cows go who? No, cows go moo!" },
@@ -915,7 +909,6 @@ const KID_JOKES = [
   { s: "Why did the sun go to school?", p: "To get a little brighter." },
   { s: "What did one raindrop say to the other?", p: "Two's company, three's a cloud." },
   { s: "What's a cloud's favourite drink?", p: "Mountain dew." },
-  { s: "Why did the snowman name his dog Frostbite?", p: "Because he was a cool dog." },
   { s: "What's a snowman's favourite breakfast?", p: "Frosted flakes." },
   { s: "Why was the snowman digging in the carrots?", p: "He was picking his nose." },
   { s: "What did the snowman order at McDonalds?", p: "An ice-burger." },
@@ -947,7 +940,6 @@ const KID_JOKES = [
   { s: "Why did the king go to the dentist?", p: "To get his teeth crowned." },
   { s: "What do you call a hippo at the North Pole?", p: "Lost." },
   { s: "What do you call a pony with a sore throat?", p: "A little horse." },
-  { s: "What do you call a row of rabbits hopping backwards?", p: "A receding hare-line." },
   { s: "What do you call a sheep covered in chocolate?", p: "A candy baa." },
   { s: "What do you call a duck that's broken?", p: "A quack-up." },
   { s: "What do you call a snowman with a six-pack?", p: "An abdominal snowman." },
@@ -974,7 +966,6 @@ const KID_JOKES = [
   { s: "What do you call a fish that needs help with vocals?", p: "Auto-tuna." },
   { s: "Why did the bird sit on the clock?", p: "Because time flies." },
   { s: "What do you call a parrot that flew away?", p: "A polygon." },
-  { s: "What do you call a chicken in a shell suit?", p: "An egg." },
   { s: "What do you get when you cross an apple and a Christmas tree?", p: "A pineapple." },
   { s: "Why did the donut go to the dentist?", p: "To get a filling." },
   { s: "Why was the strawberry crying?", p: "Because its parents were in a jam." },
@@ -990,14 +981,11 @@ const KID_JOKES = [
   { s: "Why was the skeleton bad at sports?", p: "He had no body to play with." },
   { s: "Why don't numbers go to parties?", p: "Because they get summed up." },
   { s: "What's a math teacher's favourite snack?", p: "Pi." },
-  { s: "Why is two afraid of one?", p: "Because one plus one is two!" },
   { s: "What did the triangle say to the circle?", p: "You're pointless." },
   { s: "Why couldn't the band play hide and seek?", p: "Because good luck hiding when you're a-percussion." },
   { s: "Why are pianos so hard to open?", p: "The keys are inside." },
   { s: "What's a skeleton's favourite instrument?", p: "The trom-bone." },
   { s: "Why did the guitar take a nap?", p: "It was tired of getting picked on." },
-  { s: "What does a music teacher need most?", p: "A lot of patience." },
-  { s: "Why did the singer climb the ladder?", p: "To reach the high notes." },
   { s: "What kind of music do mummies like?", p: "Wrap music." },
   { s: "How does the moon cut his hair?", p: "Eclipse it." },
   { s: "Why did the astronaut break up with the alien?", p: "They needed space." },
@@ -1027,7 +1015,6 @@ const KID_JOKES = [
   { s: "I made a pun about the wind.", p: "It blew over." },
   { s: "I tried to catch fog yesterday.", p: "Mist." },
   { s: "What has hands but cannot clap?", p: "A clock." },
-  { s: "What has a face but no eyes?", p: "A clock." },
   { s: "What has many keys but cannot open a single door?", p: "A piano." },
   { s: "What gets wetter the more it dries?", p: "A towel." },
   { s: "What has one eye but cannot see?", p: "A needle." },
@@ -1040,8 +1027,6 @@ const KID_JOKES = [
   { s: "What's full of holes but still holds water?", p: "A sponge." },
   { s: "What can you catch but not throw?", p: "A cold." },
   { s: "What has two banks but no money?", p: "A river." },
-  { s: "What runs but has no legs?", p: "Water." },
-  { s: "Time flies like an arrow.", p: "Fruit flies like a banana." },
   { s: "I would tell you a joke about pizza...", p: "But it's a bit cheesy." },
   { s: "I'm on a seafood diet.", p: "Whenever I see food, I eat it." },
   { s: "Why are pirates pirates?", p: "Because they arrrr." },
@@ -1050,8 +1035,6 @@ const KID_JOKES = [
   { s: "Why couldn't the pirate play cards?", p: "He was sitting on the deck." },
   { s: "Why did Cinderella get kicked off the football team?", p: "She kept running away from the ball." },
   { s: "Why are knights afraid of math?", p: "They worry about right angles." },
-  { s: "What do you get if you cross a snowman with a vampire?", p: "Frostbite." },
-  { s: "What's a snowman's favourite cereal?", p: "Frosted flakes." },
   { s: "How does Jack Frost get to work?", p: "By icicle." },
   { s: "What do snowmen wear on their heads?", p: "Ice caps." },
   { s: "Why did the guitar player quit the band?", p: "He was getting strung along." },
@@ -1066,40 +1049,29 @@ const KID_JOKES = [
   { s: "What did the limestone say to the geologist?", p: "Don't take me for granite." },
   { s: "What does a thesaurus eat for breakfast?", p: "Synonym buns." },
   { s: "Why did the chair go to the gym?", p: "To get a stronger back." },
-  { s: "What did the desk say to the chair?", p: "Have a seat." },
   { s: "Why did the shoe go to school?", p: "It wanted a sole-mate." },
-  { s: "What did the sock say to the foot?", p: "You crack me up." },
   { s: "Why was the belt arrested?", p: "For holding up some pants." },
   { s: "What do you call a snowman party?", p: "A snowball." },
   { s: "What do you call a bird that's been left out in the cold?", p: "A brrr-d." },
   { s: "Why are mountains so funny?", p: "They're hill-arious." },
-  { s: "Why don't oranges win races?", p: "Because they run out of juice." },
   { s: "Why was the moon hungry?", p: "Because it was only a quarter full." },
   { s: "Why did the calendar look confused?", p: "It lost its dates." },
   { s: "Why did the egg pass class?", p: "Because it eggs-celled." },
   { s: "Why are fish so good at music?", p: "They have scales." },
-  { s: "Why was the broom late for school?", p: "It overswept." },
-  { s: "Why did the orange visit the doctor?", p: "It was peelish." },
-  { s: "Why was the cookie crumbly?", p: "It was a wafer too long." },
   { s: "Why did the tree go to the dentist?", p: "It had a root problem." },
-  { s: "Why did the donkey laugh at the horse?", p: "Because the horse said neigh." },
   { s: "Why did the fish blush?", p: "Because it saw the lake's bottom." },
   { s: "Why did the egg cross the road?", p: "To go to the other shell." },
   { s: "Why did the chicken go to the museum?", p: "To see the chicken-saurs." },
   { s: "Why are cats good at video games?", p: "They have nine lives." },
   { s: "Why did the cake invite friends over?", p: "It wanted to icing along." },
-  { s: "Why did the lemon stop rolling?", p: "It ran out of juice." },
   { s: "Why did the basketball go to the doctor?", p: "It got dribbled." },
   { s: "Why did the orange juice go to school?", p: "To concentrate." },
   { s: "Why did the milk visit the gym?", p: "To get strong bones." },
   { s: "Why was the dog confused at the park?", p: "He couldn't fetch his thoughts." },
-  { s: "Why did the cat sit on the keyboard?", p: "To watch the mouse." },
-  { s: "Why did the spider go online?", p: "It was looking for a web-site." },
   { s: "Why did the rocket go to school?", p: "To be a star student." },
   { s: "Why did the moon skip dinner?", p: "It was already full." },
   { s: "Why did the dolphin smile?", p: "It saw something fin-tastic." },
   { s: "Why don't pencils ever get lost?", p: "They always make their mark." },
-  { s: "Why was the pillow so calm?", p: "It just liked to rest." },
   { s: "Why did the book look sad?", p: "Its story didn't end well." },
   { s: "Why did the kite go up?", p: "Because it had high hopes." },
   { s: "Why was the comb shy?", p: "It was always parting." },
@@ -1107,14 +1079,9 @@ const KID_JOKES = [
   { s: "Why don't mountains tell secrets?", p: "They have too many peaks." },
   { s: "Why was the volcano in detention?", p: "It blew its top." },
   { s: "Why did the iceberg go to therapy?", p: "It was distant." },
-  { s: "Why was the snowflake feeling proud?", p: "It was unique." },
   { s: "Why did the cloud bring an umbrella?", p: "In case it rained on its parade." },
   { s: "Why was the rainbow tired?", p: "It was always arching." },
   { s: "Why did the wind get a job?", p: "It was always blowing things off." },
-  { s: "Why did the lighthouse blush?", p: "It saw the sea waves." },
-  { s: "Why was the boat happy?", p: "It was sailing along nicely." },
-  { s: "Why did the submarine get lost?", p: "It dove too deep." },
-  { s: "Why did the seashell sing?", p: "It heard a beautiful sea-aria." },
   { s: "What do you call a dancing sheep?", p: "A baa-llerina." },
   { s: "What does a clock do when it's hungry?", p: "It goes back four seconds." },
   { s: "What did the buffalo say at the end of the game?", p: "Bison everybody." },
@@ -1125,10 +1092,8 @@ const KID_JOKES = [
   { s: "What's a witch's favourite subject?", p: "Spell-ing." },
   { s: "What did the porcupine say to his friend?", p: "Quill you be mine?" },
   { s: "What's an owl's favourite subject?", p: "Owl-gebra." },
-  { s: "Why don't dinosaurs ever drive cars?", p: "Because they're extinct." },
   { s: "What's the difference between a guitar and a fish?", p: "You can tune a guitar but you can't tuna fish." },
   { s: "What kind of shoes do ninjas wear?", p: "Sneakers." },
-  { s: "Why was the broom always tired?", p: "It overswept every night." },
   { s: "What's a baker's favourite kind of music?", p: "Whisk and roll." },
   { s: "What do you call a bear caught in the rain?", p: "A drizzly bear." },
   { s: "How do you make an octopus laugh?", p: "With ten-tickles." },
@@ -1137,14 +1102,11 @@ const KID_JOKES = [
   { s: "What did the buffalo say after a fight?", p: "Bison please." },
   { s: "Why did the math teacher draw on the window?", p: "She wanted her lesson to be very clear." },
   { s: "What did the right eye say to the left eye?", p: "Between us, something smells." },
-  { s: "What kind of dog can do magic tricks?", p: "A labracadabrador." },
   { s: "What's a frog's favourite year?", p: "Leap year." },
   { s: "Why did the owl invite his friends over?", p: "He didn't want to be owl alone." },
   { s: "What's a sea monster's favourite snack?", p: "Ships and dip." },
   { s: "Why was the broom angry?", p: "Someone kept making sweeping accusations." },
   { s: "How do trees access the internet?", p: "They log in." },
-  { s: "What do you call a friendly ghost?", p: "Casper." },
-  { s: "Why did the pumpkin smile?", p: "Because it was in good cheer." },
   { s: "How do you catch a squirrel?", p: "Climb a tree and act like a nut." },
   { s: "What do you call a chicken who tells jokes?", p: "A comedi-hen." },
   { s: "What does a cloud wear under its raincoat?", p: "Thunderwear." },
@@ -1159,45 +1121,60 @@ const KID_JOKES = [
   { s: "What does a cat say when it's surprised?", p: "You're kitten me!" },
   { s: "Why did the dog cross the playground?", p: "To get to the bark side." },
   { s: "What kind of tree fits in your hand?", p: "A palm tree." },
-  { s: "What did one ocean say to the other?", p: "Nothing — they just waved." },
   { s: "Why did the gum cross the road?", p: "It was stuck to the chicken's foot." },
   { s: "What did the apple skin say to the apple?", p: "I've got you covered." },
   { s: "What did the salt say to the pepper?", p: "Hey, season-up." },
-  { s: "Why was the picture happy?", p: "It was framed beautifully." },
-  { s: "What's a window's favourite drink?", p: "A pane-cake." },
   { s: "How do mountains stay warm?", p: "They wear snow-caps." },
   { s: "What do you call a sneaky lemon?", p: "A sour-pus." },
   { s: "What did the soup say to the sandwich?", p: "Lunch is on me." },
   { s: "Why did the pie go to the doctor?", p: "It felt a bit crumby." },
-  { s: "Why don't books take vacations?", p: "They like to stay on the shelf." },
   { s: "What's a teacher's favourite nation?", p: "An ex-pla-nation." },
   { s: "What's a beekeeper's favourite singer?", p: "Sting." },
   { s: "Why was the broomstick happy?", p: "It got swept off its feet." },
-  { s: "Why did the chair fall over?", p: "Because it lost its balance." },
-  { s: "What do you call a sad polar bear?", p: "An ice-cream-of-tartar." },
-  { s: "Why was the math problem confused?", p: "It had too many sums." },
   { s: "Why did the puzzle hide?", p: "It didn't want to be put together." },
-  { s: "What did the daisy say to the rose?", p: "Have a flowery day." },
-  { s: "What did the tap say to the kettle?", p: "Looks like steam is rising." },
   { s: "Why was the umbrella happy?", p: "It had a sunny outlook." },
   { s: "What's a frog's least favourite flower?", p: "A croak-us." },
   { s: "Why are dogs such good detectives?", p: "They always sniff out the truth." },
-  { s: "What's a maths teacher's favourite tool?", p: "A multiplier." },
-  { s: "What did the lamp say to the table?", p: "Lights out." },
   { s: "Why did the sandwich go to the beach?", p: "To get some sand-wich-es." },
-  { s: "What did the alphabet say after Z?", p: "Time to start over." },
   { s: "Why did the music note skip a beat?", p: "It saw a rest sign." },
-  { s: "Why was the printer always tired?", p: "It was running out of toner." },
-  { s: "What's the loudest pet?", p: "A trumpet — no, a parrot." },
-  { s: "What did the chimney say to the smoke?", p: "I rise above the rest." },
-  { s: "Why was the lake sneaky?", p: "It kept depths." },
   { s: "What did the broom say to the dust?", p: "I'll sweep you off your feet." },
   { s: "What kind of music does a planet listen to?", p: "Earth tones." },
-  { s: "Why did the kid bring chalk to the beach?", p: "To draw on the sand-board." },
-  { s: "Why did the giraffe carry a big notebook?", p: "She had a lot to write up to." },
-  { s: "Why did the lion eat the tightrope walker?", p: "He wanted a well-balanced meal." },
-  { s: "Why did the music teacher get locked out?", p: "Her keys were inside the piano." },
-  { s: "What do you call a peanut in a spacesuit?", p: "An astro-nut." }
+  { s: "What do you call a peanut in a spacesuit?", p: "An astro-nut." },
+  { s: "What did the kite say to the wind?", p: "You blow me away." },
+  { s: "What kind of music do balloons hate?", p: "Pop music." },
+  { s: "What did the dolphin say to the shark?", p: "You look a little fishy." },
+  { s: "Why did the football quit?", p: "It got tired of being kicked around." },
+  { s: "What did the cake say to the fork?", p: "Want a piece of me?" },
+  { s: "What did the burger name his daughter?", p: "Patty." },
+  { s: "What do you call a magic owl?", p: "Hoo-dini." },
+  { s: "What did the beach say when the tide came in?", p: "Long time no sea." },
+  { s: "Why don't ducks tell secrets?", p: "They quack under pressure." },
+  { s: "What did the comma say to the period?", p: "Don't be so full of yourself." },
+  { s: "What kind of cat loves bowling?", p: "An alley cat." },
+  { s: "What does an octopus wear in winter?", p: "A coat of arms." },
+  { s: "What's a frog's favourite game?", p: "Hopscotch." },
+  { s: "Why don't trees use the internet?", p: "They're always logged on." },
+  { s: "What did the pen say to the pencil?", p: "You're so pointless." },
+  { s: "What's a dentist's favourite day?", p: "Tooth-day." },
+  { s: "What did the chicken say at the library?", p: "Book book book." },
+  { s: "Why couldn't the kid watch the pirate movie?", p: "It was rated arrrr." },
+  { s: "What did the mum tomato say to the slow baby tomato?", p: "Ketchup." },
+  { s: "What do you call a duck who plays basketball?", p: "A slam-duck." },
+  { s: "What's a horse's favourite letter?", p: "Hay." },
+  { s: "What did one pancake say to the other?", p: "You're flipping awesome." },
+  { s: "What sound do owls make when they sneeze?", p: "Achoo-hoo." },
+  { s: "What do you call a sleeping shark?", p: "A nap-jaw." },
+  { s: "What's a fish's favourite instrument?", p: "The bass." },
+  { s: "Why did the boy throw butter out the window?", p: "To see a butterfly." },
+  { s: "How do you make a hotdog stand?", p: "Take away its chair." },
+  { s: "What did one strawberry say to the other?", p: "If you weren't so sweet, we wouldn't be in this jam." },
+  { s: "What did the daddy buffalo say at the school gate?", p: "Bye-son." },
+  { s: "Why are seagulls called seagulls?", p: "If they flew over the bay, they'd be bagels." },
+  { s: "Why did the kid eat his homework?", p: "Because his dog was on a diet." },
+  { s: "What's the laziest mountain?", p: "Mount Ever-rest." },
+  { s: "What do you call a dinosaur that crashes its car?", p: "Tyrannosaurus wrecks." },
+  { s: "What's a cat's favourite dessert?", p: "Mice cream." },
+  { s: "What do you give a sick lemon?", p: "Lemon-aid." }
 ];
 
 function jokeForDay(childKey, dateISO) {
@@ -1257,9 +1234,9 @@ const SON_ITEMS = [
   { key: 'firstResponse', label: 'First-response (no raised voices)', sub: 'Aimed at hotspot moments', icon: '🗣️',
     points: 5, weeklyCap: 7, dailyCap: 1, pointsCap: 4, bonus: true,
     description: 'When asked at a hotspot moment — the dinner bell, time to come downstairs, time for bed — respond without raising your voice or arguing. Aimed at the day\'s hardest transitions.' },
-  { key: 'dinnerTopic', label: 'Start a dinner table topic', sub: 'A question, story, or something interesting', icon: '💬',
+  { key: 'dinnerTopic', label: 'Build on a dinner topic', sub: 'Active listening at dinner', icon: '👂',
     points: 5, weeklyCap: 7, dailyCap: 1, pointsCap: 4, bonus: true,
-    description: 'Bring something to dinner conversation that gets everyone talking — a story from school, a question for the family, something interesting you noticed today. Not just "good" or "fine" in answer to "how was your day".' }
+    description: 'When someone else brings up something at dinner — a story, a question, an observation — listen carefully and add to it. Ask a follow-up question, share something related, or build the conversation further. The point is for listening and engaging, not just talking yourself.' }
 ];
 
 // Daughter mirrors son's items; guitar, homework and connection labels differ.
@@ -1628,11 +1605,11 @@ function familyTreatBarHTML() {
   const earned = starDays >= state.starDaysNeeded && !!treat;
 
   if (earned) {
-    return `<div class="family-treat-bar earned"><span class="icon">🎁</span> Family treat earned: <span class="treat">${escapeHtml(treat)}</span></div>`;
+    return `<div class="family-treat-bar earned"><span class="icon">🎁</span> Family choice earned: <span class="treat">${escapeHtml(treat)}</span></div>`;
   } else if (treat) {
-    return `<div class="family-treat-bar"><span class="icon">⭐</span> <span class="count">${remaining}</span> star day${remaining === 1 ? '' : 's'} to go for family treat: <span class="treat">${escapeHtml(treat)}</span></div>`;
+    return `<div class="family-treat-bar"><span class="icon">⭐</span> <span class="count">${remaining}</span> star day${remaining === 1 ? '' : 's'} to go for family choice: <span class="treat">${escapeHtml(treat)}</span></div>`;
   } else {
-    return `<div class="family-treat-bar empty"><span class="icon">⭐</span> Family treat not yet agreed${parentMode ? ' — set in Settings' : ''}</div>`;
+    return `<div class="family-treat-bar empty"><span class="icon">⭐</span> Family choice not yet agreed${parentMode ? ' — set in Settings' : ''}</div>`;
   }
 }
 
@@ -1648,7 +1625,7 @@ function toggleStar(dateISO) {
     stars.push(dateISO);
     const nowEarned = stars.length >= state.starDaysNeeded;
     if (!wasEarned && nowEarned && state.weeklyTreat) {
-      toast('🎉 ' + state.starDaysNeeded + ' star days! Treat earned.');
+      toast('🎉 ' + state.starDaysNeeded + ' star days! Family choice earned.');
     } else {
       toast('⭐ Star day');
     }
@@ -1819,6 +1796,7 @@ function childCardHTML(childKey) {
           const hasJoke = dayTotal >= (child.jokeThreshold || 60);
           const jokeTappable = !parentMode && hasJoke;
           const cls = ['day', i === today ? 'today' : '', starred ? 'starred' : '',
+                       hasJoke ? 'joke-day' : '',
                        parentMode ? 'parent-tappable' : '', jokeTappable ? 'joke-tappable' : ''].filter(Boolean).join(' ');
           let onclick = '';
           let title = '';
@@ -1833,8 +1811,10 @@ function childCardHTML(childKey) {
             <div class="${cls}" ${onclick} ${title}>
               <div class="dow">${d}</div>
               <div class="pts">${dayTotal}</div>
-              ${hasJoke ? '<div class="joke-icon">😄</div>' : ''}
-              <div class="star-slot ${starred ? 'starred' : ''}">${starred ? '⭐' : ''}</div>
+              <div class="indicators">
+                ${starred ? '<span class="ind-star">⭐</span>' : ''}
+                ${hasJoke ? '<span class="ind-joke">😄</span>' : ''}
+              </div>
             </div>
           `;
         }).join('')}
@@ -2068,7 +2048,7 @@ function openSettings() {
           <input type="number" value="${state.starDaysNeeded}" min="1" max="7" onblur="updateSetting('starDaysNeeded', Math.max(1, Math.min(7, parseInt(this.value)||${DEFAULT_STAR_DAYS_NEEDED})))">
         </div>
         <div class="settings-row">
-          <label>Family treat this week<br><span style="font-size:11px;color:var(--text-faint);">earned when ${state.starDaysNeeded} of 7 days are starred</span></label>
+          <label>Family choice this week<br><span style="font-size:11px;color:var(--text-faint);">earned when ${state.starDaysNeeded} of 7 days are starred</span></label>
           <input type="text" value="${escapeAttr(state.weeklyTreat || '')}" placeholder="e.g. Choose restaurant" onblur="updateSetting('weeklyTreat', this.value)">
         </div>
         <div class="settings-row">
